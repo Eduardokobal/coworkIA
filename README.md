@@ -1,6 +1,17 @@
 # coworkIA
 
-Um projeto pessoal. A ideia ainda está em desenho. O que o sistema faz e como rodá-lo entram aqui quando a spec do projeto for aprovada.
+Um projeto pessoal. Um servidor MCP que roda no seu PC e dá à sua IA (Claude, Codex, VS Code) ferramentas para ler e fazer a triagem dos e-mails, consultar a agenda, criticar um rascunho e montar o resumo do dia. Está em construção; a versão 1 está descrita em [docs/specs/2026-11-04-versao-1.md](docs/specs/2026-11-04-versao-1.md).
+
+## Desenvolvimento
+
+Precisa do Node.js 24 ou mais novo.
+
+    npm install
+    npm test          # testes (Vitest)
+    npm run lint      # lint e formatação (Biome)
+    npm run formatar  # corrige a formatação
+    npm run tipos     # checagem de tipos (TypeScript)
+    npm run build     # gera a pasta dist/
 
 ## Regras
 
