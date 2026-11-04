@@ -36,7 +36,12 @@ O ensaio do plano numa cópia à parte ficou de fora no começo, por decisão do
 - Nunca dar force push e nunca reescrever o que já foi empurrado.
 - Commit conferido pelo auditor não se reescreve: a correção vai num commit novo.
 
-**Exceção única:** o commit vazio `chore: início do repositório`, que deu origem à main, foi feito direto nela. É risco aceito pelo Eduardo em 2026-11-04.
+**Exceções, as duas riscos aceitos pelo Eduardo em 2026-11-04:**
+
+- o commit vazio `chore: início do repositório`, que deu origem à main, foi feito direto nela;
+- o commit `c530c93` ("Update project description in README.md"), uma edição do README feita pelo Eduardo na página do GitHub, entrou direto na main, sem PR e com a mensagem fora do padrão.
+
+**Edição pela página do GitHub:** ela também vai por branch e PR. Na hora de salvar, a opção é "Create a new branch for this commit and start a pull request", e a mensagem segue a seção 4.
 
 **Por que as regras estão aqui e não no GitHub:** o repositório começa privado, por decisão do Eduardo em 2026-11-04, numa conta sem o GitHub Pro, que é o plano que permite proteger a main de um repositório privado. Por isso, a barreira fica na máquina: o auditor e as travas locais do git, em `.githooks/`, descritas em `docs/specs/2026-11-04-travas-locais.md` e ativadas com `git config core.hooksPath .githooks`. Quando o repositório virar público, a proteção da main fica disponível no GitHub sem custo. Ela só passa a valer depois de configurada, sem a exceção para administradores, num assunto próprio e com o OK do Eduardo.
 
