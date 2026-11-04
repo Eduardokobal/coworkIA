@@ -1,0 +1,18 @@
+# Segredos: nenhum arquivo .env vai para o git.
+# O .env.example vai, com os nomes das variáveis e sem valores.
+.env*
+!.env.example
+
+# Configuração local do Claude Code, que é de cada máquina.
+.claude/settings.local.json
+
+# Arquivos do sistema.
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores.
+.vscode/
+.idea/
+
+# A parte da stack (dependências, build, cobertura) entra quando ela for escolhida.
