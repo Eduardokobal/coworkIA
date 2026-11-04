@@ -1,6 +1,6 @@
 # coworkIA
 
-Projeto pessoal e temporário de Eduardo Kobal. A ideia ainda está em desenho. O que o sistema faz e como rodá-lo entram aqui quando a primeira spec for aprovada.
+Projeto pessoal e temporário de Eduardo Kobal. A ideia ainda está em desenho. O que o sistema faz e como rodá-lo entram aqui quando a spec do projeto for aprovada.
 
 ## Regras
 
