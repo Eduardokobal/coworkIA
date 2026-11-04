@@ -38,7 +38,7 @@ O ensaio do plano numa cópia à parte ficou de fora no começo, por decisão do
 
 **Exceção única:** o commit vazio `chore: início do repositório`, que deu origem à main, foi feito direto nela. É risco aceito pelo Eduardo em 2026-11-04.
 
-**Por que as regras estão aqui e não no GitHub:** o repositório começa privado, por decisão do Eduardo em 2026-11-04, numa conta sem o GitHub Pro, que é o plano que permite proteger a main de um repositório privado. Por isso, a barreira fica na máquina: o auditor e as travas locais do git (hooks), que entram num assunto próprio, logo depois deste documento. Quando o repositório virar público, a main passa a ser protegida também no GitHub, que oferece isso sem custo para repositório público.
+**Por que as regras estão aqui e não no GitHub:** o repositório começa privado, por decisão do Eduardo em 2026-11-04, numa conta sem o GitHub Pro, que é o plano que permite proteger a main de um repositório privado. Por isso, a barreira fica na máquina: o auditor e as travas locais do git (hooks), que entram num assunto próprio, logo depois deste documento. Quando o repositório virar público, a proteção da main fica disponível no GitHub sem custo. Ela só passa a valer depois de configurada, sem a exceção para administradores, num assunto próprio e com o OK do Eduardo.
 
 ## 4. Commits
 
