@@ -1,0 +1,9 @@
+#!/bin/sh
+# Trava local: M1 a M6 sobre a mensagem (spec das travas, seção 4.2).
+. "$(dirname "$0")/regras.sh"
+
+merge_local=0
+if git rev-parse -q --verify MERGE_HEAD >/dev/null; then
+  merge_local=1
+fi
+regras_de_mensagem "$(cat "$1")" "$merge_local" ''

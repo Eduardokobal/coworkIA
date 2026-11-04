@@ -1,0 +1,23 @@
+#!/bin/sh
+# Trava local: U1 a U4 e a reconferência de cada commit novo (spec das travas, seções 4.3 e 5).
+. "$(dirname "$0")/regras.sh"
+
+regra_u1 "$2" || exit 1
+recusou=0
+while read -r ref_local sha_local ref_remota sha_remoto; do
+  [ -n "$ref_local" ] || continue
+  if ! regra_u2 "$ref_remota"; then
+    recusou=1
+    continue
+  fi
+  if eh_zeros "$sha_local"; then
+    regra_u3 "$ref_remota" "$sha_remoto" || recusou=1
+    continue
+  fi
+  if ! eh_zeros "$sha_remoto" && ! regra_u4 "$ref_remota" "$sha_remoto" "$sha_local"; then
+    recusou=1
+    continue
+  fi
+  reconferir "$sha_local" "$sha_remoto" </dev/null || recusou=1
+done
+exit "$recusou"

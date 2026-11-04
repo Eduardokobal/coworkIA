@@ -1,0 +1,11 @@
+#!/bin/sh
+# Trava local: P1 a P4 sobre o stage (spec das travas, seções 4.1 e 5).
+. "$(dirname "$0")/regras.sh"
+
+recusou=0
+regra_p1 || recusou=1
+regra_p2_no_commit || recusou=1
+git -c core.quotepath=off diff --cached --name-only --diff-filter=ACMR | regra_p3 '' || recusou=1
+git -c core.quotepath=off diff --cached -U0 --no-color --no-ext-diff --diff-filter=ACMR |
+  regra_p4 '' || recusou=1
+exit "$recusou"

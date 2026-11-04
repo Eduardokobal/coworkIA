@@ -36,9 +36,14 @@ O ensaio do plano numa cópia à parte ficou de fora no começo, por decisão do
 - Nunca dar force push e nunca reescrever o que já foi empurrado.
 - Commit conferido pelo auditor não se reescreve: a correção vai num commit novo.
 
-**Exceção única:** o commit vazio `chore: início do repositório`, que deu origem à main, foi feito direto nela. É risco aceito pelo Eduardo em 2026-11-04.
+**Exceções, as duas riscos aceitos pelo Eduardo em 2026-11-04:**
 
-**Por que as regras estão aqui e não no GitHub:** o repositório começa privado, por decisão do Eduardo em 2026-11-04, numa conta sem o GitHub Pro, que é o plano que permite proteger a main de um repositório privado. Por isso, a barreira fica na máquina: o auditor e as travas locais do git (hooks), que entram num assunto próprio, logo depois deste documento. Quando o repositório virar público, a proteção da main fica disponível no GitHub sem custo. Ela só passa a valer depois de configurada, sem a exceção para administradores, num assunto próprio e com o OK do Eduardo.
+- o commit vazio `chore: início do repositório`, que deu origem à main, foi feito direto nela;
+- o commit `c530c93` ("Update project description in README.md"), uma edição do README feita pelo Eduardo na página do GitHub, entrou direto na main, sem PR e com a mensagem fora do padrão.
+
+**Edição pela página do GitHub:** ela também vai por branch e PR. Na hora de salvar, a opção é "Create a new branch for this commit and start a pull request", e a mensagem segue a seção 4.
+
+**Por que as regras estão aqui e não no GitHub:** o repositório começa privado, por decisão do Eduardo em 2026-11-04, numa conta sem o GitHub Pro, que é o plano que permite proteger a main de um repositório privado. Por isso, a barreira fica na máquina: o auditor e as travas locais do git, em `.githooks/`, descritas em `docs/specs/2026-11-04-travas-locais.md` e ativadas com `git config core.hooksPath .githooks`. Quando o repositório virar público, a proteção da main fica disponível no GitHub sem custo. Ela só passa a valer depois de configurada, sem a exceção para administradores, num assunto próprio e com o OK do Eduardo.
 
 ## 4. Commits
 
@@ -72,21 +77,20 @@ As regras de todo commit:
 - Uma coisa só por commit, e commits pequenos.
 - Sem rodapé de IA: nada de `Co-Authored-By` de IA nem "Generated with", no commit, no PR ou na mensagem do merge.
 - O autor é o do git global: `Eduardo Kobal <162614913+Eduardokobal@users.noreply.github.com>`.
-- Nunca mudar o autor nem a configuração global do git (`git config --global`). Uma opção pontual vai no próprio comando, com `git -c`, menos para `core.hooksPath`, `user.name` e `user.email`. A configuração local deste repositório só muda quando um assunto aprovado pede.
+- Nunca mudar o autor nem a configuração global do git (`git config --global`). Uma opção pontual vai no próprio comando, com `git -c`, menos para `core.hooksPath`, `user.name` e `user.email`. A configuração local deste repositório só muda quando um assunto aprovado pede. O `gh repo create`, o `git remote add` e o `git push -u` também gravam na configuração local (o remoto e a branch acompanhada), e são permitidos.
 - Nome de pacote, papel ou exemplo com arroba vai entre crases, porque o GitHub notifica a conta citada.
 - `git add` com o caminho de cada arquivo. Nunca `git add -A`, `git add .` nem `git add -u`.
 - Antes de commitar, conferir `git branch --show-current` e `git status --short`.
-- Nunca pular os hooks do git (as travas locais, quando existirem): nem `--no-verify`, nem `-n` no commit, nem `git -c core.hooksPath=...`.
+- Nunca pular os hooks do git, que são as travas locais: nem `--no-verify`, nem `-n` no commit, nem `git -c core.hooksPath=...`. A única exceção são os testes das travas (`testes-travas/`), que usam esses atalhos de propósito, e só nos repositórios temporários da `.tmp-travas/`, para provar que as travas barram.
+- As travas conferem, antes do commit e de novo antes do push, o que está na spec das travas: commit e push na main, o autor, os arquivos de segredo, as chaves conhecidas, o formato da mensagem, o tamanho do título, o rodapé de IA, os coautores e a arroba solta. A minúscula do começo da frase e o que as travas não cobrem (spec das travas, seção 8) ficam com o auditor.
 
 ## 5. PR e merge
 
 - A base do PR é a main, e o head é o hash que o auditor conferiu.
 - O título segue o formato de commit da seção 4.
-- O corpo traz o porquê, os números (testes, lint, tipos e build), os achados que o auditor mandou anotar, os riscos aceitos, o que o Eduardo deve conferir e a mensagem do merge pronta.
-- O merge é do Eduardo, sempre com **merge commit**: a main guarda cada commit com o mesmo hash que o auditor conferiu.
-- A caixa de merge do GitHub vem com os dois campos preenchidos, e os dois são trocados:
-  - título: `tipo: frase do assunto (#N)`, em que N é o número do PR;
-  - descrição: o porquê em uma ou duas linhas, sem rodapé de IA.
+- O corpo traz o porquê, os números (testes, lint, tipos e build), os achados que o auditor mandou anotar, os riscos aceitos e o que o Eduardo deve conferir.
+- O merge é do Eduardo, sempre com **merge commit**: a main guarda cada commit com o mesmo hash que o auditor conferiu. O repositório no GitHub só oferece esse tipo de merge.
+- O título do merge vem do título do PR, e a descrição vem em branco (configuração do repositório desde 2026-11-04). Nenhum campo precisa ser trocado. O auditor confere a mensagem que entrou.
 
 ## 6. O que pede o OK do Eduardo antes
 
