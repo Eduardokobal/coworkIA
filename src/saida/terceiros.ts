@@ -35,8 +35,8 @@ export function prepararTexto(
   const limpo = convertido
     .normalize('NFKC')
     .replace(INVISIVEIS, (caractere) => (caractere === '\n' || caractere === '\t' ? caractere : ''))
-    .replace(/<{3,}/g, (sequencia) => '‹'.repeat(sequencia.length))
-    .replace(/>{3,}/g, (sequencia) => '›'.repeat(sequencia.length));
+    .replace(/<{3,}/g, (sequencia) => '\u2039'.repeat(sequencia.length))
+    .replace(/>{3,}/g, (sequencia) => '\u203A'.repeat(sequencia.length));
   const pontos = Array.from(limpo);
   const limite = LIMITES[campo];
   if (pontos.length <= limite) {
