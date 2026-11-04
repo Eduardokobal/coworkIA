@@ -83,11 +83,9 @@ As regras de todo commit:
 
 - A base do PR é a main, e o head é o hash que o auditor conferiu.
 - O título segue o formato de commit da seção 4.
-- O corpo traz o porquê, os números (testes, lint, tipos e build), os achados que o auditor mandou anotar, os riscos aceitos, o que o Eduardo deve conferir e a mensagem do merge pronta.
-- O merge é do Eduardo, sempre com **merge commit**: a main guarda cada commit com o mesmo hash que o auditor conferiu.
-- A caixa de merge do GitHub vem com os dois campos preenchidos, e os dois são trocados:
-  - título: `tipo: frase do assunto (#N)`, em que N é o número do PR;
-  - descrição: o porquê em uma ou duas linhas, sem rodapé de IA.
+- O corpo traz o porquê, os números (testes, lint, tipos e build), os achados que o auditor mandou anotar, os riscos aceitos e o que o Eduardo deve conferir.
+- O merge é do Eduardo, sempre com **merge commit**: a main guarda cada commit com o mesmo hash que o auditor conferiu. O repositório no GitHub só oferece esse tipo de merge.
+- O título do merge vem do título do PR, e a descrição vem em branco (configuração do repositório desde 2026-11-04). Nenhum campo precisa ser trocado. O auditor confere a mensagem que entrou.
 
 ## 6. O que pede o OK do Eduardo antes
 
