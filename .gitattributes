@@ -1,0 +1,7 @@
+# Fim de linha LF em todo arquivo de texto. A máquina de trabalho é Windows,
+# e o git global converte para CRLF; esta regra vale por cima dele.
+* text=auto eol=lf
+
+# Scripts do Windows precisam de CRLF para rodar.
+*.bat text eol=crlf
+*.cmd text eol=crlf
