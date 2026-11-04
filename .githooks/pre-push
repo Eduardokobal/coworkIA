@@ -18,5 +18,6 @@ while read -r ref_local sha_local ref_remota sha_remoto; do
     recusou=1
     continue
   fi
+  reconferir "$sha_local" "$sha_remoto" </dev/null || recusou=1
 done
 exit "$recusou"

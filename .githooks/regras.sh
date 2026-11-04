@@ -213,3 +213,35 @@ regra_u4() {
     'nunca reescreva o que já subiu; traga o remoto com git fetch e git merge.'
   return 1
 }
+
+# Seção 5: reconfere cada commit novo que sobe. $1 = sha local, $2 = sha remoto (pode ser só zeros).
+# Um commit que já está em qualquer ref do origin não entra na lista (achado 57).
+reconferir() {
+  if eh_zeros "$2"; then
+    commits_r=$(git rev-list "$1" --not --remotes=origin)
+  else
+    commits_r=$(git rev-list "$1" --not "$2" --remotes=origin)
+  fi
+  falhou_r=0
+  for commit_r in $commits_r; do
+    curto_r=$(git rev-parse --short "$commit_r")
+    regra_p2 "$(git log -1 --format='%an <%ae>' "$commit_r")" \
+      "$(git log -1 --format='%cn <%ce>' "$commit_r")" "commit $curto_r" || falhou_r=1
+    pais_r=$(git log -1 --format=%P "$commit_r" | wc -w | tr -d ' ')
+    merge_r=0
+    if [ "$pais_r" -gt 1 ]; then
+      merge_r=1
+    fi
+    regras_de_mensagem "$(git log -1 --format=%B "$commit_r")" "$merge_r" "commit $curto_r" || falhou_r=1
+    if [ "$pais_r" -eq 0 ]; then
+      base_r=$(git hash-object -t tree --stdin </dev/null)
+    else
+      base_r="$commit_r^1"
+    fi
+    git -c core.quotepath=off diff --name-only --diff-filter=ACMR "$base_r" "$commit_r" |
+      regra_p3 "commit $curto_r" || falhou_r=1
+    git -c core.quotepath=off diff -U0 --no-color --no-ext-diff --diff-filter=ACMR "$base_r" "$commit_r" |
+      regra_p4 "commit $curto_r" || falhou_r=1
+  done
+  return "$falhou_r"
+}
