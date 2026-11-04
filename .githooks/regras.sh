@@ -113,3 +113,52 @@ $REGRAS_DE_CHAVE
 EOF
   return "$falhou_p4"
 }
+
+# M1: os tipos do CONTRIBUTING, seção 4.
+TIPOS='feat|fix|docs|test|refactor|perf|style|build|ci|chore'
+
+# M1 a M6: $1 = texto da mensagem; $2 = 1 quando é merge local; $3 = onde.
+regras_de_mensagem() {
+  texto_m=$(printf '%s\n' "$1" | grep -v '^#')
+  titulo_m=$(printf '%s\n' "$texto_m" | sed -n '1p')
+  falhou_m=0
+  if [ "$2" = 1 ] && [ "${titulo_m#Merge }" != "$titulo_m" ]; then
+    : # M6: o "Merge …" de um merge local não passa pela M1 nem pela M2.
+  else
+    if ! printf '%s\n' "$titulo_m" | LC_ALL=C grep -qE "^($TIPOS)(\\([a-z0-9-]+\\))?!?: [^ ]"; then
+      recusar M1 "título fora do formato tipo(escopo): frase${3:+ ($3)}." \
+        'use um dos tipos do CONTRIBUTING, seção 4, por exemplo: feat: cadastro de salas'
+      falhou_m=1
+    elif [ "${titulo_m%.}" != "$titulo_m" ]; then
+      recusar M1 "o título termina com ponto${3:+ ($3)}." 'tire o ponto final do título.'
+      falhou_m=1
+    fi
+    tamanho_m=$(printf '%s' "$titulo_m" | LC_ALL=C.UTF-8 wc -m | tr -d ' ')
+    if [ "$tamanho_m" -gt 72 ]; then
+      recusar M2 "o título tem $tamanho_m caracteres, e o limite é 72${3:+ ($3)}." \
+        'encurte o título e leve o detalhe para o corpo.'
+      falhou_m=1
+    fi
+  fi
+  if [ "$(printf '%s\n' "$texto_m" | wc -l | tr -d ' ')" -gt 1 ] &&
+    [ -n "$(printf '%s\n' "$texto_m" | sed -n '2p')" ]; then
+    recusar M3 "falta a linha em branco depois do título${3:+ ($3)}." 'separe o título do corpo com uma linha vazia.'
+    falhou_m=1
+  fi
+  if printf '%s\n' "$texto_m" | grep -qiE '^co-authored-by:'; then
+    recusar M4 "a mensagem tem Co-Authored-By${3:+ ($3)}." 'tire a linha: o único autor é o Eduardo.'
+    falhou_m=1
+  fi
+  # O git roda o hook com LC_CTYPE=C.UTF-8, e nele o grep do Git for Windows não acha o 🤖
+  # (fora do plano básico do Unicode). Com LC_ALL=C, a busca é byte a byte e acha.
+  if printf '%s\n' "$texto_m" | grep -qiF 'generated with' ||
+    printf '%s\n' "$texto_m" | LC_ALL=C grep -qF '🤖'; then
+    recusar M4 "a mensagem tem rodapé de IA${3:+ ($3)}." 'tire o rodapé.'
+    falhou_m=1
+  fi
+  if printf '%s\n' "$texto_m" | sed 's/`[^`]*`//g' | LC_ALL=C grep -qE '(^|[[:space:][:punct:]])@[A-Za-z0-9]'; then
+    recusar M5 "arroba solta fora de crase${3:+ ($3)}." 'ponha o nome entre crases ou tire a arroba.'
+    falhou_m=1
+  fi
+  return "$falhou_m"
+}
