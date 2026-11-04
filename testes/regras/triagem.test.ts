@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Email } from '../../src/dominio.js';
-import { type ContextoTriagem, agrupar, classificar } from '../../src/regras/triagem.js';
+import { agrupar, type ContextoTriagem, classificar } from '../../src/regras/triagem.js';
 import { relogioFixo } from '../../src/tempo.js';
 
 const SP = 'America/Sao_Paulo';
@@ -36,7 +36,10 @@ describe('T1, propaganda', () => {
       assunto: 'URGENTE: última chance',
       cabecalhos: { 'list-unsubscribe': '<mailto:sair@example.org>' },
     });
-    expect(resultado).toEqual({ categoria: 'propaganda', motivos: ['T1: cabeçalho List-Unsubscribe'] });
+    expect(resultado).toEqual({
+      categoria: 'propaganda',
+      motivos: ['T1: cabeçalho List-Unsubscribe'],
+    });
   });
 
   it.each([
@@ -83,9 +86,9 @@ describe('T3, prazo', () => {
 
   it('não é urgente com prazo vencido', () => {
     expect(triar({ corpoTexto: 'O prazo era até 03/11/2026.' }).categoria).toBe('informativo');
-    expect(
-      triar({ data: '2026-11-02T09:00', corpoTexto: 'O boleto vence hoje.' }).categoria,
-    ).toBe('informativo');
+    expect(triar({ data: '2026-11-02T09:00', corpoTexto: 'O boleto vence hoje.' }).categoria).toBe(
+      'informativo',
+    );
   });
 
   it('uma data sem "até" antes não é prazo', () => {
