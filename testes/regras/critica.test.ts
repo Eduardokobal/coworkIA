@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type Rascunho, criticar } from '../../src/regras/critica.js';
+import { criticar, type Rascunho } from '../../src/regras/critica.js';
 
 const regras = (rascunho: Rascunho) => criticar(rascunho).map((a) => a.regra);
 const achado = (rascunho: Rascunho, regra: string) =>
