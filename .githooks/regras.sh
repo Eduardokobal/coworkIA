@@ -162,3 +162,54 @@ regras_de_mensagem() {
   fi
   return "$falhou_m"
 }
+
+# RG3: a URL sai sem usuário e senha.
+url_sem_credencial() {
+  printf '%s\n' "$1" | sed 's#://[^/@]*@#://***@#'
+}
+
+# U1: o remoto é o github.com/Eduardokobal/coworkIA, por HTTPS ou SSH.
+regra_u1() {
+  case "$1" in
+    https://github.com/Eduardokobal/coworkIA | https://github.com/Eduardokobal/coworkIA.git | git@github.com:Eduardokobal/coworkIA.git)
+      return 0
+      ;;
+  esac
+  recusar U1 "push para outro remoto: $(url_sem_credencial "$1")." \
+    'o remoto tem de ser github.com/Eduardokobal/coworkIA; confira o git remote -v (nunca a organização Grupo-Vannuchi).'
+  return 1
+}
+
+# U2: nada vai para a main, nem para apagá-la.
+regra_u2() {
+  if [ "$1" != refs/heads/main ]; then
+    return 0
+  fi
+  recusar U2 'push para a main.' 'a main só muda por PR, com o merge do Eduardo.'
+  return 1
+}
+
+# U3: apagar uma branch só depois de ela entrar na origin/main. $1 = ref remota, $2 = sha remoto.
+regra_u3() {
+  if git cat-file -e "$2^{commit}" 2>/dev/null &&
+    git merge-base --is-ancestor "$2" refs/remotes/origin/main 2>/dev/null; then
+    return 0
+  fi
+  recusar U3 "apagar $1, que não está na origin/main deste clone." \
+    'rode git fetch origin e confira se o PR dela já teve o merge.'
+  return 1
+}
+
+# U4: sem push forçado. $1 = ref remota, $2 = sha remoto, $3 = sha local.
+regra_u4() {
+  if ! git cat-file -e "$2^{commit}" 2>/dev/null; then
+    recusar U4 "o commit remoto de $1 não está neste clone." 'rode git fetch origin antes do push.'
+    return 1
+  fi
+  if git merge-base --is-ancestor "$2" "$3"; then
+    return 0
+  fi
+  recusar U4 "push forçado em $1: o remoto tem commits que o local não tem." \
+    'nunca reescreva o que já subiu; traga o remoto com git fetch e git merge.'
+  return 1
+}
