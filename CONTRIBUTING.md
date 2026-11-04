@@ -62,7 +62,8 @@ O porquê da mudança, quando ele não é óbvio.
   - `ci`: integração contínua.
   - `chore`: manutenção que não entra em nenhum dos outros.
 - **escopo**: opcional. É a parte do sistema que muda, entre parênteses. Exemplo: `fix(reservas): impede reserva no passado`.
-- **frase**: em português, começando com minúscula e sem ponto final, com até 72 caracteres. Ela diz o efeito da mudança. Exemplo: `feat: cadastro de salas`.
+- **frase**: em português, começando com minúscula e sem ponto final. Ela diz o efeito da mudança. Exemplo: `feat: cadastro de salas`. A minúscula não vale para nome próprio, sigla ou nome de arquivo, como em `docs: README inicial`.
+- **primeira linha**: a linha inteira, com o tipo e o escopo, tem até 72 caracteres. Cada letra acentuada conta como um caractere.
 - **corpo**: depois de uma linha em branco. Diz o porquê, não o como.
 - **mudança que quebra compatibilidade**: leva `!` depois do tipo (`feat!: ...`) e um rodapé `BREAKING CHANGE: o que quebra`.
 
