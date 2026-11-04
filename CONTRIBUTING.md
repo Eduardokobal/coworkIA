@@ -116,7 +116,7 @@ Antes do primeiro push, o `git remote -v` precisa mostrar `github.com/Eduardokob
 - Nas regras de negócio, o teste vem antes do código. Primeiro ele falha, depois passa, e só então o código é refatorado.
 - O projeto tem lint e formatação, e os comandos ficam no README.
 - As versões ficam fixadas pelo arquivo de lock, que é commitado. Dependência nova só entra com motivo, escrito no corpo do commit.
-- Os arquivos de texto usam fim de linha LF, garantido pelo `.gitattributes`.
+- Os arquivos de texto usam fim de linha LF, garantido pelo `.gitattributes`. A exceção são os scripts `.bat` e `.cmd`, que precisam de CRLF para rodar no Windows.
 
 ## 9. Limites
 
