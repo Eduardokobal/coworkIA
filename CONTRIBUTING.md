@@ -90,7 +90,7 @@ As regras de todo commit:
 
 ## 6. O que pede o OK do Eduardo antes
 
-Tudo o que grava fora da máquina pede o OK do Eduardo antes, pela caixa: criar o repositório, push, abrir PR, deploy, banco de produção, serviço pago e qualquer outra gravação externa.
+Tudo o que grava fora da máquina pede o OK do Eduardo antes, pela caixa: criar o repositório, push, abrir PR, tornar o repositório público, deploy, banco de produção, serviço pago e qualquer outra gravação externa. Antes de o repositório virar público, o auditor lê o histórico inteiro atrás de segredo.
 
 Numa gravação em banco ou serviço externo, a ordem é esta:
 
