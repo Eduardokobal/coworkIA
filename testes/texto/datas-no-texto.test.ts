@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import { lerDataHora } from '../../src/tempo.js';
 import {
   type DataNoTexto,
   datasNumericas,
   resolverData,
   temDataExplicita,
 } from '../../src/texto/datas-no-texto.js';
-import { lerDataHora } from '../../src/tempo.js';
 
 const SP = 'America/Sao_Paulo';
 
@@ -60,9 +60,9 @@ describe('resolverData (DT2)', () => {
   });
 
   it('com ano, vale o ano escrito, mesmo no passado', () => {
-    expect(resolverData(primeira('05/11/25'), lerDataHora('2026-11-04T10:00', SP))?.toISODate()).toBe(
-      '2025-11-05',
-    );
+    expect(
+      resolverData(primeira('05/11/25'), lerDataHora('2026-11-04T10:00', SP))?.toISODate(),
+    ).toBe('2025-11-05');
   });
 });
 
