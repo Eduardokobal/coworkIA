@@ -53,24 +53,24 @@ describe('intervaloDoPeriodo (H3, H4)', () => {
   });
 
   it('amanhã é o dia seguinte inteiro', () => {
-    expect(comoTexto('amanha')).toEqual([
-      '2026-11-05T00:00:00-03:00',
-      '2026-11-06T00:00:00-03:00',
-    ]);
+    expect(comoTexto('amanha')).toEqual(['2026-11-05T00:00:00-03:00', '2026-11-06T00:00:00-03:00']);
   });
 
   it('a semana tem 7 dias, contando hoje', () => {
-    expect(comoTexto('semana')).toEqual([
-      '2026-11-04T00:00:00-03:00',
-      '2026-11-11T00:00:00-03:00',
-    ]);
+    expect(comoTexto('semana')).toEqual(['2026-11-04T00:00:00-03:00', '2026-11-11T00:00:00-03:00']);
   });
 });
 
 describe('diasDeCalendario (H5)', () => {
   it('conta por data, sem olhar a hora', () => {
-    expect(diasDeCalendario(lerDataHora('2026-11-04T23:00', SP), lerDataHora('2026-11-05T01:00', SP))).toBe(1);
-    expect(diasDeCalendario(lerDataHora('2026-11-04T01:00', SP), lerDataHora('2026-11-04T23:00', SP))).toBe(0);
-    expect(diasDeCalendario(lerDataHora('2026-11-04T10:00', SP), lerDataHora('2026-11-03T10:00', SP))).toBe(-1);
+    expect(
+      diasDeCalendario(lerDataHora('2026-11-04T23:00', SP), lerDataHora('2026-11-05T01:00', SP)),
+    ).toBe(1);
+    expect(
+      diasDeCalendario(lerDataHora('2026-11-04T01:00', SP), lerDataHora('2026-11-04T23:00', SP)),
+    ).toBe(0);
+    expect(
+      diasDeCalendario(lerDataHora('2026-11-04T10:00', SP), lerDataHora('2026-11-03T10:00', SP)),
+    ).toBe(-1);
   });
 });
