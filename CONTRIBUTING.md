@@ -20,7 +20,7 @@ Os passos marcados com **portão** só seguem depois do parecer do auditor e do 
 4. **Plano** (portão). O DEV escreve o plano em `docs/planos/AAAA-MM-DD-assunto.md`, em fases numeradas, com o teste antes de cada código. O auditor dá o parecer e o Eduardo diz "Li, pode executar".
 5. **Fases**. A cada fase, o DEV manda ao auditor o hash e os números: o teste vermelho antes, o verde depois, o lint, os tipos e o build. O DEV segue para a fase seguinte sem esperar a resposta.
 6. **Push** (portão). Acontece com o OK do Eduardo e depois de o auditor conferir o commit do topo e a branch.
-7. **PR**. O auditor confere o corpo e a mensagem do merge antes de o PR abrir.
+7. **PR** (portão). Abrir o PR pede o OK do Eduardo, e o auditor confere o corpo e a mensagem do merge antes de o PR abrir.
 8. **Merge** (portão). Quem faz é o Eduardo. Depois, o auditor confere se a main ficou igual ao que foi conferido, e só então o assunto está fechado.
 9. **Deploy**, quando existir. Acontece só com o OK do Eduardo, e o auditor confere só lendo.
 
