@@ -71,11 +71,11 @@ As regras de todo commit:
 - Uma coisa só por commit, e commits pequenos.
 - Sem rodapé de IA: nada de `Co-Authored-By` de IA nem "Generated with", no commit, no PR ou na mensagem do merge.
 - O autor é o do git global: `Eduardo Kobal <162614913+Eduardokobal@users.noreply.github.com>`.
-- Nunca mudar o autor nem a configuração global do git (`git config --global`). Uma opção pontual vai no próprio comando, com `git -c`. A configuração local deste repositório só muda quando um assunto aprovado pede.
+- Nunca mudar o autor nem a configuração global do git (`git config --global`). Uma opção pontual vai no próprio comando, com `git -c`, menos para `core.hooksPath`, `user.name` e `user.email`. A configuração local deste repositório só muda quando um assunto aprovado pede.
 - Nome de pacote, papel ou exemplo com arroba vai entre crases, porque o GitHub notifica a conta citada.
 - `git add` com o caminho de cada arquivo. Nunca `git add -A`, `git add .` nem `git add -u`.
 - Antes de commitar, conferir `git branch --show-current` e `git status --short`.
-- Nunca usar `--no-verify`, porque ele pula os hooks do git, que são as travas locais.
+- Nunca pular os hooks do git (as travas locais, quando existirem): nem `--no-verify`, nem `-n` no commit, nem `git -c core.hooksPath=...`.
 
 ## 5. PR e merge
 
