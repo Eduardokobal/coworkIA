@@ -28,4 +28,7 @@ desktop.ini
 # Repositórios temporários dos testes das travas.
 .tmp-travas/
 
-# A parte da stack (dependências, build, cobertura) entra quando ela for escolhida.
+# Node.
+node_modules/
+dist/
+coverage/
