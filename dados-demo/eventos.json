@@ -1,0 +1,122 @@
+[
+  {
+    "id": "daily",
+    "status": "confirmed",
+    "summary": "Daily da equipe",
+    "description": "Status rápido do time.",
+    "location": "Sala virtual",
+    "organizer": { "email": "ana@example.com", "displayName": "Ana Ribeiro" },
+    "start": { "dateTime": "{{dia+0 09:00}}" },
+    "end": { "dateTime": "{{dia+0 09:30}}" },
+    "attendees": [
+      { "email": "ana@example.com", "responseStatus": "accepted" },
+      { "email": "voce@example.com", "self": true, "responseStatus": "accepted" }
+    ]
+  },
+  {
+    "id": "reuniao-cliente",
+    "status": "confirmed",
+    "summary": "Reunião com a Marina",
+    "description": "Pauta:{{U+200B}} assinatura do contrato.",
+    "location": "Escritório{{U+200B}} da cliente",
+    "organizer": { "email": "marina@example.com", "displayName": "Marina{{U+200B}} Costa" },
+    "start": { "dateTime": "{{dia+0 14:00}}" },
+    "end": { "dateTime": "{{dia+0 15:00}}" },
+    "attendees": [
+      { "email": "marina@example.com", "responseStatus": "accepted" },
+      { "email": "voce@example.com", "self": true, "responseStatus": "accepted" }
+    ]
+  },
+  {
+    "id": "revisao-sobreposta",
+    "status": "confirmed",
+    "summary": "Revisão do{{U+200B}} contrato{{U+001B}}",
+    "start": { "dateTime": "{{dia+0 14:30}}" },
+    "end": { "dateTime": "{{dia+0 15:30}}" }
+  },
+  {
+    "id": "encosta",
+    "status": "confirmed",
+    "summary": "Café com o Carlos",
+    "location": "Padaria da esquina",
+    "organizer": { "email": "carlos@example.org", "displayName": "Carlos Lima" },
+    "start": { "dateTime": "{{dia+0 15:30}}" },
+    "end": { "dateTime": "{{dia+0 16:00}}" },
+    "attendees": [
+      { "email": "carlos@example.org", "responseStatus": "accepted" },
+      { "email": "voce@example.com", "self": true, "responseStatus": "accepted" }
+    ]
+  },
+  {
+    "id": "aniversario",
+    "status": "confirmed",
+    "summary": "Aniversário da Bia",
+    "start": { "date": "{{dia+0}}" },
+    "end": { "date": "{{dia+1}}" },
+    "transparency": "transparent"
+  },
+  {
+    "id": "cancelado",
+    "status": "cancelled",
+    "summary": "Treinamento de segurança",
+    "description": "Remarcado para o mês que vem.",
+    "location": "Auditório",
+    "organizer": { "email": "ana@example.com", "displayName": "Ana Ribeiro" },
+    "start": { "dateTime": "{{dia+0 16:00}}" },
+    "end": { "dateTime": "{{dia+0 17:00}}" },
+    "attendees": [
+      { "email": "ana@example.com", "responseStatus": "accepted" },
+      { "email": "voce@example.com", "self": true, "responseStatus": "accepted" }
+    ]
+  },
+  {
+    "id": "livre",
+    "status": "confirmed",
+    "summary": "Bloco de foco",
+    "start": { "dateTime": "{{dia+0 17:00}}" },
+    "end": { "dateTime": "{{dia+0 18:00}}" },
+    "transparency": "transparent"
+  },
+  {
+    "id": "recusado",
+    "status": "confirmed",
+    "summary": "Happy hour",
+    "location": "Bar do centro",
+    "organizer": { "email": "bia@example.com", "displayName": "Bia Souza" },
+    "start": { "dateTime": "{{dia+0 18:00}}" },
+    "end": { "dateTime": "{{dia+0 19:00}}" },
+    "attendees": [
+      { "email": "bia@example.com", "responseStatus": "accepted" },
+      { "email": "voce@example.com", "self": true, "responseStatus": "declined" }
+    ]
+  },
+  {
+    "id": "dia-inteiro-amanha",
+    "status": "confirmed",
+    "summary": "Viagem a Campinas",
+    "description": "Visita ao cliente.",
+    "location": "Campinas",
+    "start": { "date": "{{dia+1}}" },
+    "end": { "date": "{{dia+2}}" }
+  },
+  {
+    "id": "amanha-cedo",
+    "status": "confirmed",
+    "summary": "Entrevista com candidato",
+    "location": "Sala virtual",
+    "organizer": { "email": "ana@example.com", "displayName": "Ana Ribeiro" },
+    "start": { "dateTime": "{{dia+1 10:00}}" },
+    "end": { "dateTime": "{{dia+1 11:00}}" },
+    "attendees": [
+      { "email": "ana@example.com", "responseStatus": "accepted" },
+      { "email": "voce@example.com", "self": true, "responseStatus": "needsAction" }
+    ]
+  },
+  {
+    "id": "ferias-3-dias",
+    "status": "confirmed",
+    "summary": "Folga",
+    "start": { "date": "{{dia+3}}" },
+    "end": { "date": "{{dia+6}}" }
+  }
+]
