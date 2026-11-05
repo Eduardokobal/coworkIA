@@ -12,7 +12,9 @@
     "lint": "biome check .",
     "formatar": "biome check --write .",
     "tipos": "tsc --noEmit",
-    "build": "tsc -p tsconfig.build.json"
+    "build": "tsc -p tsconfig.build.json",
+    "pretest": "npm run build",
+    "resumo": "node dist/cli.js resumo"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",
