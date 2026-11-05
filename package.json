@@ -15,8 +15,10 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "entities": "^9.0.0",
-    "luxon": "^3.7.2"
+    "luxon": "^3.7.2",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.5",
