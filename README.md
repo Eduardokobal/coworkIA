@@ -1,6 +1,6 @@
 # coworkIA
 
-Um projeto pessoal. Um servidor MCP que roda no seu PC e dá à sua IA (Claude, Codex, VS Code) ferramentas para ler e fazer a triagem dos e-mails, consultar a agenda, criticar um rascunho e montar o resumo do dia. A versão 1 está descrita em [docs/specs/2026-11-04-versao-1.md](docs/specs/2026-11-04-versao-1.md), com o [adendo](docs/specs/2026-11-05-versao-1-adendo.md). Hoje ela roda no modo de demonstração, com uma caixa de e-mail e uma agenda inventadas; o Gmail e a Agenda do Google vêm na próxima etapa.
+Um projeto pessoal. Um servidor MCP que roda no seu PC e dá à sua IA (Claude, Codex, VS Code) ferramentas para ler e fazer a triagem dos e-mails, consultar a agenda, criticar um rascunho e montar o resumo do dia. A versão 1 está descrita em [docs/specs/2026-11-04-versao-1.md](docs/specs/2026-11-04-versao-1.md), com os adendos dos planos [B](docs/specs/2026-11-05-versao-1-adendo.md) e [C](docs/specs/2026-11-05-versao-1-adendo-c.md). Ela roda no modo de demonstração, com uma caixa de e-mail e uma agenda inventadas, ou com o seu Gmail e a sua Agenda do Google, só para leitura.
 
 ## Como usar
 
@@ -61,10 +61,27 @@ As ferramentas são `listar_emails`, `ler_email`, `triagem_emails`, `listar_even
 
 | Variável | Para quê | Padrão |
 |---|---|---|
-| `COWORKIA_MODO` | `demo` ou `google` (o `google` ainda não está disponível) | `demo` |
+| `COWORKIA_MODO` | `demo` ou `google` (o `google` precisa do login; veja abaixo) | `demo` |
 | `COWORKIA_FUSO` | O fuso das datas e horas | `America/Sao_Paulo` |
 | `COWORKIA_IMPORTANTES` | Remetentes importantes, separados por vírgula | nenhum |
 | `COWORKIA_AGORA` | Fixa o relógio; só para testes e demonstração | o relógio do sistema |
+
+### Usar o Gmail e a Agenda de verdade
+
+O coworkIA só lê: as permissões pedidas são `gmail.readonly` e `calendar.readonly`. O cliente OAuth é seu, criado no seu projeto do Google Cloud. O token fica no cofre do sistema (o Gerenciador de Credenciais do Windows, o Keychain do macOS ou o Secret Service do Linux), e nunca num arquivo.
+
+1. No Google Cloud Console, crie um projeto e ative a Gmail API e a Google Calendar API.
+2. Configure a tela de consentimento OAuth como "Externo", deixe o app em "Teste" e acrescente o seu e-mail como usuário de teste.
+3. Crie um cliente OAuth do tipo "App para computador".
+4. Copie o `.env.example` para `.env`, na pasta do coworkIA, e preencha o `COWORKIA_GOOGLE_CLIENT_ID` e o `COWORKIA_GOOGLE_CLIENT_SECRET`. O `.env` fica fora do git.
+5. Rode `npm run login-google`, abra o endereço que aparece no terminal e permita a leitura do Gmail e da Agenda. O login só é aceito com essas duas permissões, nem mais nem menos.
+6. Defina `COWORKIA_MODO=google` para o servidor. No Claude Code, por exemplo:
+
+       claude mcp add coworkia -e COWORKIA_MODO=google -- node /caminho/para/coworkIA/dist/cli.js
+
+No modo google, o coworkIA lê só a caixa de entrada, e no máximo 200 e-mails por chamada. Para sair, rode `npm run logout-google`, que apaga o token do cofre.
+
+Com o app em "Teste", o Google faz o login valer 7 dias; depois disso, rode `npm run login-google` de novo. Publicar o app tira esse limite, mas o Google pode pedir uma verificação para as permissões do Gmail, e isso não foi testado.
 
 ## Avisos
 
