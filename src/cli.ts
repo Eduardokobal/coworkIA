@@ -1,20 +1,56 @@
 #!/usr/bin/env node
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { criarDependencias } from './aplicacao.js';
+import { criarDependencias, type RecursosDoGoogle } from './aplicacao.js';
 import { lerConfig } from './config.js';
+import { criarAcessoAoGoogle } from './login/acesso.js';
+import { criarCofre } from './login/cofre.js';
+import { credenciaisDoEnv } from './login/credenciais.js';
+import { fazerLogin, fazerLogout } from './login/login.js';
 import { resumoParaTexto } from './saida/formatar.js';
 import { resumoDoDia } from './servico.js';
 import { criarServidor } from './servidor.js';
 
 const PASTA_DEMO = fileURLToPath(new URL('../dados-demo', import.meta.url));
+/** AD14: o .env fica na pasta do coworkIA, ao lado do package.json. */
+const ARQUIVO_ENV = fileURLToPath(new URL('../.env', import.meta.url));
+
+function lerEnv(): string | null {
+  try {
+    return readFileSync(ARQUIVO_ENV, 'utf8');
+  } catch {
+    return null;
+  }
+}
+
+function recursosDoGoogle(): RecursosDoGoogle {
+  return {
+    lerEnv,
+    cofre: criarCofre(),
+    buscar: (url, opcoes) => fetch(url, opcoes),
+    criarAcesso: criarAcessoAoGoogle,
+  };
+}
+
+function mostrar(texto: string): void {
+  process.stdout.write(`${texto}\n`);
+}
 
 async function principal(argumentos: readonly string[]): Promise<void> {
-  const config = lerConfig(process.env);
-  const dep = criarDependencias(config, PASTA_DEMO);
   const [comando] = argumentos;
+  if (comando === 'login-google') {
+    await fazerLogin({ credenciais: credenciaisDoEnv(lerEnv()), cofre: criarCofre(), mostrar });
+    return;
+  }
+  if (comando === 'logout-google') {
+    fazerLogout(criarCofre(), mostrar);
+    return;
+  }
+  const config = lerConfig(process.env);
+  const dep = criarDependencias(config, PASTA_DEMO, recursosDoGoogle());
   if (comando === 'resumo') {
-    process.stdout.write(`${resumoParaTexto(await resumoDoDia(dep), config.fuso)}\n`);
+    mostrar(resumoParaTexto(await resumoDoDia(dep), config.fuso));
     return;
   }
   if (comando !== undefined) {
