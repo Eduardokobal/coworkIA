@@ -14,7 +14,9 @@
     "tipos": "tsc --noEmit",
     "build": "tsc -p tsconfig.build.json",
     "pretest": "npm run build",
-    "resumo": "node dist/cli.js resumo"
+    "resumo": "node dist/cli.js resumo",
+    "login-google": "node dist/cli.js login-google",
+    "logout-google": "node dist/cli.js logout-google"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",
