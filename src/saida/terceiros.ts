@@ -25,6 +25,23 @@ export interface TextoPreparado {
 /** S2, passo 3: controles, formato e ignoráveis por padrão (o \n e o \t voltam no replace). */
 const INVISIVEIS = /[\p{Cc}\p{Cf}\p{Default_Ignorable_Code_Point}]/gu;
 
+const ESC = String.fromCodePoint(0x1b);
+const BEL = String.fromCodePoint(0x07);
+/** As formas de 8 bits do CSI, do ST e do OSC. */
+const CSI8 = String.fromCodePoint(0x9b);
+const ST8 = String.fromCodePoint(0x9c);
+const OSC8 = String.fromCodePoint(0x9d);
+
+/**
+ * S2, passo 3, e AD17: as sequências ANSI que saem inteiras, antes dos controles.
+ * A CSI segue o ECMA-48: parâmetros (0x30 a 0x3F), intermediários (0x20 a 0x2F) e o final
+ * (0x40 a 0x7E). A OSC não tem controle no meio e termina no BEL, no ESC \ ou no ST.
+ */
+const ANSI = new RegExp(
+  `(?:${ESC}\\[|${CSI8})[0-?]*[ -/]*[@-~]|(?:${ESC}\\]|${OSC8})[^\\p{Cc}]*(?:${BEL}|${ESC}\\\\|${ST8})`,
+  'gu',
+);
+
 /** S2, passos 1 a 5. A ordem importa e está escrita na spec. */
 export function prepararTexto(
   valor: string,
@@ -34,6 +51,7 @@ export function prepararTexto(
   const convertido = opcoes.html === true ? htmlParaTexto(valor, { cortarCitacao: false }) : valor;
   const limpo = convertido
     .normalize('NFKC')
+    .replace(ANSI, '')
     .replace(INVISIVEIS, (caractere) => (caractere === '\n' || caractere === '\t' ? caractere : ''))
     .replace(/<{3,}/g, (sequencia) => '\u2039'.repeat(sequencia.length))
     .replace(/>{3,}/g, (sequencia) => '\u203A'.repeat(sequencia.length));

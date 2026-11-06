@@ -189,6 +189,15 @@ describe('resumo_do_dia (7.7)', () => {
     expect((await resumoDoDia({ ...base, fontes })).proximoCompromisso?.id).toBe('valido');
   });
 
+  it('às 08:00, a Daily da demonstração já passou e o próximo é a reunião (achado 77)', async () => {
+    const resumo = await resumoDoDia(dependencias('2026-11-04T08:00'));
+    expect(resumo.eventosDeHoje.map((evento) => evento.id)).toContain('daily');
+    expect(resumo.eventosDeHoje.find((evento) => evento.id === 'daily')?.fim).toEqual({
+      dataHora: '2026-11-04T07:30:00-03:00',
+    });
+    expect(resumo.proximoCompromisso?.id).toBe('reuniao-cliente');
+  });
+
   it('sem compromisso pela frente, o próximo é nulo', async () => {
     expect((await resumoDoDia(dependencias('2026-11-04T20:00'))).proximoCompromisso).toBeNull();
   });

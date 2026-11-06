@@ -33,8 +33,42 @@ describe('S2, passos 1 a 4: as variações do marcador', () => {
   });
 
   it('tira o ESC e os outros controles, mas mantém \\n e \\t', () => {
-    expect(preparar('\u001b[31mVermelho\u0007')).toBe('[31mVermelho');
+    expect(preparar('\u001b[31mVermelho\u0007')).toBe('Vermelho');
     expect(preparar('a\n\tb\r')).toBe('a\n\tb');
+  });
+});
+
+describe('S2, passo 3, e AD17: as sequências ANSI saem inteiras', () => {
+  const ESC = String.fromCodePoint(0x1b);
+  const BEL = String.fromCodePoint(0x07);
+  const CSI8 = String.fromCodePoint(0x9b);
+  const ST8 = String.fromCodePoint(0x9c);
+  const OSC8 = String.fromCodePoint(0x9d);
+
+  it('tira a CSI das cores e do cursor, nas formas de 7 e de 8 bits', () => {
+    expect(preparar(`${ESC}[31mVermelho${ESC}[0m`)).toBe('Vermelho');
+    expect(preparar(`${ESC}[38;5;196mCor${ESC}[2 q`)).toBe('Cor');
+    expect(preparar(`${CSI8}1mNegrito`)).toBe('Negrito');
+    expect(preparar(`${ESC}[?25lTexto${ESC}[200~`)).toBe('Texto');
+  });
+
+  it('tira a OSC dos títulos e dos links, com os três terminadores', () => {
+    expect(preparar(`${ESC}]0;Título${BEL}Texto`)).toBe('Texto');
+    expect(preparar(`${ESC}]8;;https://example.com${ESC}\\link${ESC}]8;;${ESC}\\`)).toBe('link');
+    expect(preparar(`${OSC8}0;x${ST8}Fim`)).toBe('Fim');
+  });
+
+  it('fora da gramática, a sequência conta como sem fim e só perde o ESC', () => {
+    expect(preparar(`${ESC}[é texto`)).toBe('[é texto');
+    expect(preparar(`${ESC}[31`)).toBe('[31');
+    expect(preparar(`${ESC}]0;sem fim`)).toBe(']0;sem fim');
+    expect(preparar(`${ESC}]0;quebra\nTexto${BEL}`)).toBe(']0;quebra\nTexto');
+    expect(preparar(`${ESC}]0;outro${ESC}[1mTexto`)).toBe(']0;outroTexto');
+  });
+
+  it('o DCS e os escapes de dois caracteres só perdem o ESC, como antes', () => {
+    expect(preparar(`${ESC}Pdados${ESC}\\Texto`)).toBe('Pdados\\Texto');
+    expect(preparar(`${ESC}cTexto`)).toBe('cTexto');
   });
 });
 
