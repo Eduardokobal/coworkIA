@@ -6,8 +6,8 @@
     "description": "Status rápido do time.",
     "location": "Sala virtual",
     "organizer": { "email": "ana@example.com", "displayName": "Ana Ribeiro" },
-    "start": { "dateTime": "{{dia+0 09:00}}" },
-    "end": { "dateTime": "{{dia+0 09:30}}" },
+    "start": { "dateTime": "{{dia+0 07:00}}" },
+    "end": { "dateTime": "{{dia+0 07:30}}" },
     "attendees": [
       { "email": "ana@example.com", "responseStatus": "accepted" },
       { "email": "voce@example.com", "self": true, "responseStatus": "accepted" }
