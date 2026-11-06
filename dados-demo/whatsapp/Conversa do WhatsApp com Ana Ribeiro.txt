@@ -1,0 +1,7 @@
+{{agora-26h:android}} - As mensagens e as ligações são protegidas com a criptografia de ponta a ponta. Ninguém fora desta conversa pode ler nem ouvir.
+{{agora-26h:android}} - Ana Ribeiro: Oi, Lúcia! Tudo bem por aí?
+{{agora-25h:android}} - Lúcia Prado: Tudo ótimo, e com você?
+{{agora-3h:android}} - Ana Ribeiro: Lúcia, o cliente ligou de novo.
+Ele quer o contrato assinado ainda hoje.
+É urgente!
+{{agora-2h:android}} - Ana Ribeiro: <Mídia oculta>
