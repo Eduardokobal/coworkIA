@@ -43,7 +43,15 @@ O ensaio do plano numa cópia à parte ficou de fora no começo, por decisão do
 
 **Edição pela página do GitHub:** ela também vai por branch e PR. Na hora de salvar, a opção é "Create a new branch for this commit and start a pull request", e a mensagem segue a seção 4.
 
-**Por que as regras estão aqui e não no GitHub:** o repositório começa privado, por decisão do Eduardo em 2026-11-04, numa conta sem o GitHub Pro, que é o plano que permite proteger a main de um repositório privado. Por isso, a barreira fica na máquina: o auditor e as travas locais do git, em `.githooks/`, descritas em `docs/specs/2026-11-04-travas-locais.md` e ativadas com `git config core.hooksPath .githooks`. Quando o repositório virar público, a proteção da main fica disponível no GitHub sem custo. Ela só passa a valer depois de configurada, sem a exceção para administradores, num assunto próprio e com o OK do Eduardo.
+**Por que as regras também estão na máquina:** o repositório começou privado, por decisão do Eduardo em 2026-11-04, numa conta sem o GitHub Pro, que é o plano que permite proteger a main de um repositório privado. Por isso, a barreira começou na máquina: o auditor e as travas locais do git, em `.githooks/`, descritas em `docs/specs/2026-11-04-travas-locais.md` e ativadas com `git config core.hooksPath .githooks`. Elas continuam valendo, porque conferem o que o GitHub não confere, como o formato da mensagem, o autor e os arquivos de segredo.
+
+**A proteção da main no GitHub:** o repositório ficou público em 2026-11-06, e a main tem um ruleset do GitHub, "main protegida", sem exceção para ninguém, nem para o administrador:
+- a main só muda por PR, e só com merge commit;
+- ninguém dá force push na main nem a apaga;
+- o PR pede zero aprovações de revisor no GitHub, porque o Eduardo é a única pessoa com acesso. A conferência é a do auditor;
+- não há checagem obrigatória, porque o projeto não tem CI.
+
+Uma correção de emergência também passa por branch e PR. Mudar o ruleset é um assunto próprio, com o OK do Eduardo.
 
 ## 4. Commits
 
@@ -91,6 +99,7 @@ As regras de todo commit:
 - O corpo traz o porquê, os números (testes, lint, tipos e build), os achados que o auditor mandou anotar, os riscos aceitos e o que o Eduardo deve conferir.
 - O merge é do Eduardo, sempre com **merge commit**: a main guarda cada commit com o mesmo hash que o auditor conferiu. O repositório no GitHub só oferece esse tipo de merge.
 - O título do merge vem do título do PR, e a descrição vem em branco (configuração do repositório desde 2026-11-04). Nenhum campo precisa ser trocado. O auditor confere a mensagem que entrou.
+- Depois do merge, o GitHub apaga sozinho a branch do PR (configuração do repositório desde 2026-11-06). O commit e o PR continuam no GitHub, e a branch local continua na máquina.
 
 ## 6. O que pede o OK do Eduardo antes
 
@@ -112,6 +121,8 @@ Antes do primeiro push, o `git remote -v` precisa mostrar `github.com/Eduardokob
 - Os arquivos `.env*` ficam fora do git. O `.env.example` vai com os nomes das variáveis e sem os valores.
 - Chave nunca é impressa. Para saber se ela existe, confira o nome e o tamanho, nunca o valor.
 - O teste de integração nunca roda contra a produção.
+- No GitHub, ficam ligados a varredura de segredos, o bloqueio de envio com segredo e os alertas do Dependabot, que só avisam. As atualizações automáticas do Dependabot ficam desligadas, porque abrem PRs de um robô, fora do ciclo da seção 2. Um alerta é decisão do Eduardo.
+- Um teste nunca escreve por extenso um valor no formato de uma chave, mesmo falsa: a P4 das travas recusa o commit, e o bloqueio de envio do GitHub pode recusar o push. Quando um teste precisa de uma chave, ele a monta na hora, como fazem os testes das travas.
 
 ## 8. Qualidade
 
