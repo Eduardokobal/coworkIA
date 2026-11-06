@@ -114,3 +114,15 @@ O repositório traz travas do git em `.githooks/`. Elas barram, antes do commit 
     git config core.hooksPath .githooks
 
 Para conferir, `git config --get core.hooksPath` mostra `.githooks`. Os testes das travas rodam com `sh testes-travas/rodar.sh`.
+
+## Como o projeto foi feito
+
+O coworkIA foi construído com o Claude Code, em duas sessões com papéis separados: uma constrói (o DEV) e a outra confere (o auditor). Nenhuma das duas decide sozinha: o Eduardo aprova cada spec e cada plano, dá o OK para tudo o que grava fora da máquina e faz o merge de cada PR.
+
+- Cada parte com código começou por uma spec, em [docs/specs/](docs/specs/), e por um plano com o teste antes do código, em [docs/planos/](docs/planos/).
+- O auditor conferiu cada commit antes do push. A partir do plano B, ele também aplicou cada plano do zero, numa cópia própria, e comparou o resultado commit por commit.
+- O [CLAUDE.md](CLAUDE.md) traz as instruções que as sessões seguem, e o [CONTRIBUTING.md](CONTRIBUTING.md), as regras do processo.
+
+## Licença
+
+MIT. Veja o [LICENSE](LICENSE).
