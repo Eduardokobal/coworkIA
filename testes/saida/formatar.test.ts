@@ -153,6 +153,16 @@ describe('eventoParaSaida (7.4 e AD8)', () => {
     });
   });
 
+  it('o ocupado segue a D-c e a D-d: cancelado, livre e recusado não ocupam (AD18)', () => {
+    const ocupado = (parcial: Partial<Evento>) =>
+      eventoParaSaida(evento(parcial), SP, SAIDA_DO_TERMINAL).ocupado;
+    expect(ocupado({})).toBe(true);
+    expect(ocupado({ minhaResposta: 'tentative' })).toBe(true);
+    expect(ocupado({ status: 'cancelled' })).toBe(false);
+    expect(ocupado({ transparencia: 'transparent' })).toBe(false);
+    expect(ocupado({ minhaResposta: 'declined' })).toBe(false);
+  });
+
   it('um campo de terceiros vazio sai vazio, sem marcação (AD6)', () => {
     const saida = eventoParaSaida(evento({}), SP, MARCADA);
     expect(saida.descricao).toBe('');
