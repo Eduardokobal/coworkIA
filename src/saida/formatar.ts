@@ -1,7 +1,14 @@
-import type { Categoria, Evento, Pessoa } from '../dominio.js';
+import type { Categoria, Evento, MensagemWhatsapp, Pessoa } from '../dominio.js';
 import { bloqueiaAgenda, ehDiaInteiro, intervaloDoEvento } from '../regras/disponibilidade.js';
 import type { EmailClassificado } from '../regras/triagem.js';
-import type { ResultadoTriagem, ResumoDoDia } from '../servico.js';
+import type { CategoriaWhatsapp, ConversaClassificada } from '../regras/triagem-whatsapp.js';
+import type {
+  ConversaLida,
+  ListaDeConversas,
+  ResultadoTriagem,
+  ResultadoTriagemWhatsapp,
+  ResumoDoDia,
+} from '../servico.js';
 import { lerDataHora, paraIso } from '../tempo.js';
 import { type Campo, marcar, type Origem, prepararTexto } from './terceiros.js';
 
@@ -150,6 +157,7 @@ export function resumoParaSaida(resumo: ResumoDoDia, fuso: string, saida: Saida)
     conflitos: resumo.conflitos.map(([a, b]) => [a.id, b.id]),
     proximo_compromisso: proximo === null ? null : eventoParaSaida(proximo, fuso, saida),
     aviso_proximo: proximo === null ? SEM_COMPROMISSOS : null,
+    whatsapp: whatsappDoResumo(resumo.whatsapp, saida),
   };
 }
 
@@ -217,5 +225,125 @@ export function resumoParaTexto(resumo: ResumoDoDia, fuso: string): string {
       ? `Próximo compromisso: ${SEM_COMPROMISSOS}`
       : `Próximo compromisso: ${intervaloDoEvento(proximo, fuso).inicio.toFormat('HH:mm')} ${texto(proximo.titulo, 'titulo')}`,
   );
+  linhas.push(...linhasDoWhatsapp(resumo.whatsapp));
   return linhas.join('\n');
+}
+
+/** Versão 2: uma mensagem, com o autor e o texto de terceiros (RW2 e SW1). */
+function mensagemParaSaida(mensagem: MensagemWhatsapp, id: string, saida: Saida, tipo: Campo) {
+  return {
+    autor: campo(mensagem.autor, 'nome', 'whatsapp', id, saida),
+    data: mensagem.data,
+    texto: campo(mensagem.texto, tipo, 'whatsapp', id, saida),
+  };
+}
+
+function contarWhatsapp(resultado: ResultadoTriagemWhatsapp): Record<CategoriaWhatsapp, number> {
+  return {
+    urgente: resultado.grupos.urgente.length,
+    pede_resposta: resultado.grupos.pede_resposta.length,
+    informativo: resultado.grupos.informativo.length,
+  };
+}
+
+/** Versão 2, 7.10: os motivos não têm texto de terceiros; o autor e a data vão no trecho. */
+function conversaClassificadaParaSaida(item: ConversaClassificada, saida: Saida) {
+  const id = item.conversa.id;
+  return {
+    id,
+    nome: campo(item.conversa.nome, 'nome', 'whatsapp', id, saida),
+    grupo: item.grupo,
+    esperando_voce: item.bloco.length,
+    motivos: item.motivos,
+    trecho: item.trecho === null ? null : mensagemParaSaida(item.trecho, id, saida, 'trecho'),
+  };
+}
+
+/** Versão 2, 7.8 */
+export function conversasParaSaida(lista: ListaDeConversas, saida: Saida) {
+  return {
+    conversas: lista.conversas.map((item) => ({
+      id: item.conversa.id,
+      nome: campo(item.conversa.nome, 'nome', 'whatsapp', item.conversa.id, saida),
+      grupo: item.grupo,
+      ultima_mensagem: item.ultima?.data ?? null,
+      mensagens: item.conversa.mensagens.length,
+      esperando_voce: item.esperandoVoce,
+    })),
+    avisos: lista.avisos.map((aviso) => ({
+      conversa: aviso.nome === null ? null : campo(aviso.nome, 'nome', 'whatsapp', 'pasta', saida),
+      aviso: aviso.texto,
+    })),
+  };
+}
+
+/** Versão 2, 7.9 */
+export function conversaLidaParaSaida(lida: ConversaLida, saida: Saida) {
+  const id = lida.conversa.id;
+  return {
+    id,
+    nome: campo(lida.conversa.nome, 'nome', 'whatsapp', id, saida),
+    mensagens: lida.mensagens.map((mensagem) => ({
+      ...mensagemParaSaida(mensagem, id, saida, 'corpo'),
+      sua: mensagem.sua,
+    })),
+    completo: lida.completo,
+  };
+}
+
+/** Versão 2, 7.10 */
+export function triagemWhatsappParaSaida(resultado: ResultadoTriagemWhatsapp, saida: Saida) {
+  const itens = (lista: ConversaClassificada[]) =>
+    lista.map((item) => conversaClassificadaParaSaida(item, saida));
+  return {
+    contagem: contarWhatsapp(resultado),
+    analisadas: resultado.analisadas,
+    urgente: itens(resultado.grupos.urgente),
+    pede_resposta: itens(resultado.grupos.pede_resposta),
+    informativo: itens(resultado.grupos.informativo),
+  };
+}
+
+/** Versão 2, 7.7: a seção do WhatsApp, ou o aviso do que falta configurar (F1). */
+function whatsappDoResumo(whatsapp: ResultadoTriagemWhatsapp | string, saida: Saida) {
+  if (typeof whatsapp === 'string') {
+    return { aviso: whatsapp };
+  }
+  const itens = (lista: ConversaClassificada[]) =>
+    lista.map((item) => conversaClassificadaParaSaida(item, saida));
+  return {
+    contagem: contarWhatsapp(whatsapp),
+    analisadas: whatsapp.analisadas,
+    urgentes: itens(whatsapp.grupos.urgente),
+    pede_resposta: itens(whatsapp.grupos.pede_resposta),
+  };
+}
+
+/** Versão 2, 7.7 no terminal: os passos 1 a 5 da S2, sem a marcação, com o trecho numa linha só. */
+function linhasDoWhatsapp(whatsapp: ResultadoTriagemWhatsapp | string): string[] {
+  if (typeof whatsapp === 'string') {
+    return ['', `WhatsApp: ${whatsapp}`];
+  }
+  const texto = (valor: string, tipo: Campo) => prepararTexto(valor, tipo).texto;
+  const contagem = contarWhatsapp(whatsapp);
+  const linhas = [
+    '',
+    `WhatsApp das últimas 24 horas: ${contagem.urgente} urgentes, ${contagem.pede_resposta} pedem resposta e ${contagem.informativo} informativos (${whatsapp.analisadas} conversas analisadas).`,
+  ];
+  const listar = (titulo: string, itens: ConversaClassificada[]) => {
+    linhas.push('', titulo);
+    if (itens.length === 0) {
+      linhas.push('- nenhuma');
+    }
+    for (const item of itens) {
+      const trecho =
+        item.trecho === null
+          ? ''
+          : ` (${texto(item.trecho.autor, 'nome')}: ${texto(item.trecho.texto, 'trecho').replace(/\s+/g, ' ')})`;
+      linhas.push(`- ${texto(item.conversa.nome, 'nome')}: ${item.motivos.join('; ')}${trecho}`);
+    }
+  };
+  listar('Urgentes no WhatsApp:', whatsapp.grupos.urgente);
+  listar('Pedem resposta no WhatsApp:', whatsapp.grupos.pede_resposta);
+  return linhas;
 }

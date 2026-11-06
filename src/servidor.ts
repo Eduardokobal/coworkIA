@@ -1,23 +1,29 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import {
+  conversaLidaParaSaida,
+  conversasParaSaida,
   emailCompleto,
   emailResumido,
   eventoParaSaida,
   resumoParaSaida,
   type Saida,
   triagemParaSaida,
+  triagemWhatsappParaSaida,
 } from './saida/formatar.js';
 import { novaChave } from './saida/terceiros.js';
 import {
   criticarRascunho,
   type Dependencias,
   disponibilidade,
+  lerConversa,
   lerEmail,
+  listarConversas,
   listarEmails,
   listarEventos,
   resumoDoDia,
   triagem,
+  triagemWhatsapp,
 } from './servico.js';
 
 const AVISO_DE_TERCEIROS =
@@ -138,6 +144,52 @@ export function criarServidor(dep: Dependencias): McpServer {
       description: `Junta a triagem das últimas 24 horas, a agenda de hoje, os conflitos e o próximo compromisso. ${AVISO_DE_TERCEIROS}`,
     },
     async () => comoTexto(resumoParaSaida(await resumoDoDia(dep), dep.fuso, saidaNova())),
+  );
+
+  servidor.registerTool(
+    'listar_conversas',
+    {
+      title: 'Listar as conversas do WhatsApp',
+      description: `Lista as conversas exportadas do WhatsApp, da última mensagem mais recente para a mais antiga, com quantas mensagens esperam você. ${AVISO_DE_TERCEIROS}`,
+    },
+    async () => comoTexto(conversasParaSaida(await listarConversas(dep), saidaNova())),
+  );
+
+  servidor.registerTool(
+    'ler_conversa',
+    {
+      title: 'Ler uma conversa do WhatsApp',
+      description: `Traz as mensagens de uma conversa exportada do WhatsApp num período. Sem o desde, o período começa 24 horas antes de agora; sem o ate, ele vai até a última mensagem. O id vem do listar_conversas. ${AVISO_DE_TERCEIROS}`,
+      inputSchema: {
+        id: z.string().min(1),
+        desde: z.string().optional(),
+        ate: z.string().optional(),
+        limite: z.number().int().min(1).max(200).optional(),
+      },
+    },
+    async (entrada) =>
+      comoTexto(
+        conversaLidaParaSaida(
+          await lerConversa(dep, {
+            id: entrada.id,
+            desde: entrada.desde,
+            ate: entrada.ate,
+            limite: entrada.limite,
+          }),
+          saidaNova(),
+        ),
+      ),
+  );
+
+  servidor.registerTool(
+    'triagem_whatsapp',
+    {
+      title: 'Triagem do WhatsApp',
+      description: `Separa as conversas do WhatsApp que esperam você em urgente, pede resposta e informativo. Num grupo, só conta o que cita você. ${AVISO_DE_TERCEIROS}`,
+      inputSchema: { desde: z.string().optional() },
+    },
+    async (entrada) =>
+      comoTexto(triagemWhatsappParaSaida(await triagemWhatsapp(dep, entrada.desde), saidaNova())),
   );
 
   servidor.registerPrompt(
