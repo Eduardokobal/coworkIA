@@ -1,5 +1,5 @@
 import type { Categoria, Evento, Pessoa } from '../dominio.js';
-import { ehDiaInteiro, intervaloDoEvento } from '../regras/disponibilidade.js';
+import { bloqueiaAgenda, ehDiaInteiro, intervaloDoEvento } from '../regras/disponibilidade.js';
 import type { EmailClassificado } from '../regras/triagem.js';
 import type { ResultadoTriagem, ResumoDoDia } from '../servico.js';
 import { lerDataHora, paraIso } from '../tempo.js';
@@ -107,7 +107,7 @@ export function triagemParaSaida(resultado: ResultadoTriagem, fuso: string, said
   };
 }
 
-/** 7.4 e AD8 */
+/** 7.4, AD8 e AD18 */
 export function eventoParaSaida(evento: Evento, fuso: string, saida: Saida) {
   const { inicio, fim } = intervaloDoEvento(evento, fuso);
   return {
@@ -122,7 +122,7 @@ export function eventoParaSaida(evento: Evento, fuso: string, saida: Saida) {
       evento.organizador === null ? null : pessoa(evento.organizador, 'agenda', evento.id, saida),
     status: evento.status,
     minha_resposta: evento.minhaResposta === null ? null : MINHA_RESPOSTA[evento.minhaResposta],
-    ocupado: evento.transparencia !== 'transparent',
+    ocupado: bloqueiaAgenda(evento),
   };
 }
 
