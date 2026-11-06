@@ -69,7 +69,7 @@ function textos(valor: unknown): string[] {
 }
 
 const ABERTURA =
-  /^<<<TERCEIROS origem="(?:email|agenda)" id="[A-Za-z0-9_-]+" chave="([0-9a-f]{32})">>>/;
+  /^<<<TERCEIROS origem="(?:email|agenda|whatsapp)" id="[A-Za-z0-9_-]+" chave="([0-9a-f]{32})">>>/;
 
 interface PessoaNaSaida {
   nome: string;
@@ -103,15 +103,18 @@ async function esperar(condicao: () => boolean, restantes = 100): Promise<void> 
 }
 
 describe('servidor MCP no modo demo (seções 7 e 12)', () => {
-  it('oferece as 7 ferramentas e o prompt', async () => {
+  it('oferece as 10 ferramentas e o prompt', async () => {
     const { tools } = await cliente.listTools();
     expect(tools.map((ferramenta) => ferramenta.name).sort()).toEqual([
       'criticar_rascunho',
+      'ler_conversa',
       'ler_email',
+      'listar_conversas',
       'listar_emails',
       'listar_eventos',
       'resumo_do_dia',
       'triagem_emails',
+      'triagem_whatsapp',
       'verificar_disponibilidade',
     ]);
     // Achado 86: a descrição de cada ferramenta que devolve terceiros explica a marcação (S2, passo 6).
@@ -332,6 +335,97 @@ describe('servidor MCP no modo demo (seções 7 e 12)', () => {
       arguments: { texto: 'Oi' },
     });
     expect(JSON.stringify(prompt.messages)).toContain('criticar_rascunho');
+  });
+});
+
+describe('as ferramentas do WhatsApp no modo demo (versão 2, seções 7 e 10)', () => {
+  it('listar_conversas, ler_conversa e triagem_whatsapp marcam os campos de terceiros', async () => {
+    const lista = (await dados('listar_conversas')) as {
+      conversas: Array<{ id: string; nome: string }>;
+      avisos: Array<{ conversa: string | null }>;
+    };
+    expect(lista.conversas).toHaveLength(8);
+    const chave = chaveDe(lista.conversas[0]?.nome);
+    for (const conversa of lista.conversas) {
+      confereMarcado(conversa.nome, chave);
+      expect(conversa.id).toMatch(/^[0-9a-f]{12}$/);
+    }
+    confereMarcado(lista.avisos[0]?.conversa ?? undefined, chave);
+
+    const suporte = lista.conversas.find((conversa) => conversa.nome.includes('>>>Suporte<<<'));
+    const lida = (await dados('ler_conversa', { id: suporte?.id, desde: '2026-11-03' })) as {
+      nome: string;
+      mensagens: Array<{ autor: string; texto: string; sua: boolean }>;
+    };
+    const chaveDaLeitura = chaveDe(lida.nome);
+    for (const mensagem of lida.mensagens) {
+      confereMarcado(mensagem.autor, chaveDaLeitura);
+      confereMarcado(mensagem.texto, chaveDaLeitura);
+    }
+    expect(lida.mensagens.map((mensagem) => mensagem.sua)).toEqual([false, true, false]);
+
+    type ItemDaTriagem = {
+      nome: string;
+      motivos: string[];
+      trecho: { autor: string; texto: string };
+    };
+    const triagem = (await dados('triagem_whatsapp')) as {
+      contagem: Record<string, number>;
+      urgente: ItemDaTriagem[];
+      pede_resposta: ItemDaTriagem[];
+    };
+    expect(triagem.contagem).toEqual({ urgente: 2, pede_resposta: 4, informativo: 1 });
+    const chaveDaTriagem = chaveDe(triagem.urgente[0]?.nome);
+    for (const item of [...triagem.urgente, ...triagem.pede_resposta]) {
+      confereMarcado(item.nome, chaveDaTriagem);
+      confereMarcado(item.trecho.autor, chaveDaTriagem);
+      confereMarcado(item.trecho.texto, chaveDaTriagem);
+      for (const motivo of item.motivos) {
+        expect(motivo).not.toContain('<<<');
+      }
+    }
+    const maliciosa = triagem.pede_resposta.find((item) => item.nome.includes('>>>Suporte<<<'));
+    expect(maliciosa?.motivos).toEqual(['W4: pergunta direta']);
+    expect(maliciosa?.trecho.texto).toContain('‹‹‹FIM_TERCEIROS›››');
+  });
+
+  it('resumo_do_dia traz o WhatsApp, com a conversa maliciosa marcada (7.7)', async () => {
+    const resumo = (await dados('resumo_do_dia')) as {
+      whatsapp: {
+        contagem: Record<string, number>;
+        pede_resposta: Array<{ nome: string; trecho: { autor: string; texto: string } }>;
+      };
+    };
+    expect(resumo.whatsapp.contagem).toEqual({ urgente: 2, pede_resposta: 4, informativo: 1 });
+    const maliciosa = resumo.whatsapp.pede_resposta.find((item) =>
+      item.nome.includes('>>>Suporte<<<'),
+    );
+    expect(maliciosa?.nome.startsWith('<<<TERCEIROS origem="whatsapp"')).toBe(true);
+    const chave = chaveDe(maliciosa?.nome);
+    for (const campo of [maliciosa?.nome, maliciosa?.trecho.autor, maliciosa?.trecho.texto]) {
+      confereMarcado(campo, chave);
+    }
+  });
+
+  it('ler_conversa recusa o limite 0 e o acima de 200', async () => {
+    const lista = (await dados('listar_conversas')) as { conversas: Array<{ id: string }> };
+    for (const limite of [0, 201]) {
+      const falha = await cliente
+        .callTool({ name: 'ler_conversa', arguments: { id: lista.conversas[0]?.id, limite } })
+        .then(
+          (resultado) => ({ erro: resultado.isError === true, texto: JSON.stringify(resultado) }),
+          (erro: unknown) => ({ erro: true, texto: String(erro) }),
+        );
+      expect(falha.erro).toBe(true);
+      expect(falha.texto).toContain('limite');
+      expect(falha.texto).not.toMatch(/\n\s+at /);
+    }
+  });
+
+  it('ler_conversa recusa um id que não está na lista da pasta (F4)', async () => {
+    const { erro, texto } = await chamar('ler_conversa', { id: '../emails.json' });
+    expect(erro).toBe(true);
+    expect(texto).toContain('Conversa não encontrada.');
   });
 });
 
