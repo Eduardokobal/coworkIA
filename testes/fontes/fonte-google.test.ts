@@ -143,6 +143,17 @@ describe('fonte de e-mail do Google (7.1, 7.2, 7.3, AD10 e AD11)', () => {
     expect(pedidos.some((pedido) => pedido.url.pathname.endsWith('/m3'))).toBe(false);
   });
 
+  it('no fim da última página, compara o que achou com o limite (#97)', async () => {
+    const { fontes, pedidos } = googleDeMentira(caixaDeTres);
+    const justo = await fontes.email.listar({ limite: 3 });
+    expect(ids(justo.emails)).toEqual(['m2', 'm1', 'm3']);
+    expect(justo.completo).toBe(true);
+    const passou = await fontes.email.listar({ limite: 2 });
+    expect(ids(passou.emails)).toEqual(['m2', 'm1']);
+    expect(passou.completo).toBe(false);
+    expect(pedidos.filter((pedido) => pedido.url.pathname.endsWith('/m3'))).toHaveLength(2);
+  });
+
   it('lê no máximo 200 e-mails por chamada', async () => {
     const muitos = Array.from({ length: LIMITE_DE_LEITURA + 1 }, (_, i) => ({ id: `x${i}` }));
     const { fontes, pedidos } = googleDeMentira((url) =>
