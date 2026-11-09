@@ -32,6 +32,16 @@ describe('resolverModelos (seção 10 e AD2)', () => {
     expect(resolverModelos('{{U+FF1C}}{{U+001B}}', agora)).toBe(String.fromCodePoint(0xff1c, 0x1b));
   });
 
+  it('troca o agora pelo formato da exportação do WhatsApp (versão 2, seção 9)', () => {
+    expect(resolverModelos('{{agora-90min:android}} - Ana: oi', agora)).toBe(
+      '04/11/2026 09:00 - Ana: oi',
+    );
+    expect(resolverModelos('[{{agora-2h:iphone}}] Ana: oi', agora)).toBe(
+      '[04/11/2026, 08:30:15] Ana: oi',
+    );
+    expect(() => resolverModelos('{{agora-2h:windows}}', agora)).toThrow('modelo desconhecido');
+  });
+
   it('recusa um modelo desconhecido', () => {
     expect(() => resolverModelos('{{amanha}}', agora)).toThrow('modelo desconhecido');
   });

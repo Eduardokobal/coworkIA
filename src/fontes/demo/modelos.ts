@@ -1,21 +1,30 @@
 import type { DateTime } from 'luxon';
 import { paraIso } from '../../tempo.js';
 
-/** Grupos: 1 dia, 2 hora, 3 minuto, 4 formato, 5 deslocamento do agora, 6 unidade, 7 código. */
+/**
+ * Grupos: 1 dia, 2 hora, 3 minuto, 4 formato, 5 deslocamento do agora, 6 unidade,
+ * 7 formato do WhatsApp (versão 2, seção 9) e 8 código.
+ */
 const MODELO =
-  /\{\{(?:dia([+-]\d+)(?: (\d{2}):(\d{2})|:(dd\/mm\/aaaa|dd\/mm))?|agora([+-]\d+)(h|min)|U\+([0-9A-F]{4,6}))\}\}/g;
+  /\{\{(?:dia([+-]\d+)(?: (\d{2}):(\d{2})|:(dd\/mm\/aaaa|dd\/mm))?|agora([+-]\d+)(h|min)(?::(android|iphone))?|U\+([0-9A-F]{4,6}))\}\}/g;
 const QUALQUER_MODELO = /\{\{[^}]*\}\}/;
 
 function resolverUm(agora: DateTime, grupos: Array<string | undefined>): string {
-  const [dia, hora, minuto, formato, deslocamento, unidade, codigo] = grupos;
+  const [dia, hora, minuto, formato, deslocamento, unidade, whatsapp, codigo] = grupos;
   if (codigo !== undefined) {
     return String.fromCodePoint(Number.parseInt(codigo, 16));
   }
   if (deslocamento !== undefined) {
     const quantidade = Number(deslocamento);
-    return paraIso(
-      unidade === 'h' ? agora.plus({ hours: quantidade }) : agora.plus({ minutes: quantidade }),
-    );
+    const momento =
+      unidade === 'h' ? agora.plus({ hours: quantidade }) : agora.plus({ minutes: quantidade });
+    if (whatsapp === 'android') {
+      return momento.toFormat('dd/MM/yyyy HH:mm');
+    }
+    if (whatsapp === 'iphone') {
+      return momento.toFormat('dd/MM/yyyy, HH:mm:ss');
+    }
+    return paraIso(momento);
   }
   const data = agora.startOf('day').plus({ days: Number(dia) });
   if (hora !== undefined && minuto !== undefined) {
@@ -33,7 +42,7 @@ function resolverUm(agora: DateTime, grupos: Array<string | undefined>): string 
 /** Seção 10 e AD2: troca os modelos de um texto; um modelo desconhecido é erro. */
 export function resolverModelos(texto: string, agora: DateTime): string {
   const resolvido = texto.replace(MODELO, (...achado: unknown[]) =>
-    resolverUm(agora, achado.slice(1, 8) as Array<string | undefined>),
+    resolverUm(agora, achado.slice(1, 9) as Array<string | undefined>),
   );
   if (QUALQUER_MODELO.test(resolvido)) {
     throw new Error(`modelo desconhecido em: ${texto}`);

@@ -87,7 +87,7 @@ export function prazosNoTexto(texto: string, dataDoEmail: DateTime): Prazo[] {
   return prazos;
 }
 
-function quandoVence(dias: number): string {
+export function quandoVence(dias: number): string {
   if (dias === 0) {
     return 'vence hoje';
   }

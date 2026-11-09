@@ -3,8 +3,9 @@ import { join } from 'node:path';
 import type { DateTime } from 'luxon';
 import { z } from 'zod';
 import { esquemaEventoDaApi, eventoDaApi } from '../calendar-api.js';
+import { criarFonteWhatsapp, type FonteWhatsapp } from '../whatsapp/fonte-whatsapp.js';
 import type { DadosDemo } from './fonte-demo.js';
-import { resolverObjeto } from './modelos.js';
+import { resolverModelos, resolverObjeto } from './modelos.js';
 
 const esquemaPessoa = z.object({ nome: z.string(), endereco: z.string() });
 
@@ -33,4 +34,16 @@ export function carregarDadosDemo(pasta: string, agora: DateTime): DadosDemo {
     emails: z.array(esquemaEmail).parse(ler('emails.json')),
     eventos: z.array(esquemaEventoDaApi).parse(ler('eventos.json')).map(eventoDaApi),
   };
+}
+
+/** Versão 2, V2: o usuário da demonstração é fixo, e a COWORKIA_WHATSAPP_EU não é lida. */
+export const EU_DA_DEMONSTRACAO: readonly string[] = ['Lúcia Prado', 'Lúcia'];
+
+/** Versão 2, F1 e seção 9: as conversas da demonstração, com os modelos trocados pelo relógio. */
+export function fonteWhatsappDemo(pasta: string, agora: DateTime, fuso: string): FonteWhatsapp {
+  return criarFonteWhatsapp({
+    pasta: join(pasta, 'whatsapp'),
+    fuso,
+    preparar: (texto) => resolverModelos(texto, agora),
+  });
 }

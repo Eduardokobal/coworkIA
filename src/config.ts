@@ -9,6 +9,20 @@ export interface Config {
   importantes: string[];
   /** AD1: só para testes e demonstração; fixa o relógio. */
   agora: string | null;
+  /** Versão 2, F1: a pasta das conversas exportadas, lida só no modo google. */
+  whatsappPasta: string | null;
+  /** Versão 2, V1: os nomes com que o usuário aparece na exportação. */
+  whatsappEu: string[];
+  /** Versão 2, W3: os contatos importantes, como aparecem na exportação. */
+  whatsappImportantes: string[];
+}
+
+/** Uma lista separada por vírgula, sem os espaços das pontas e sem os itens vazios. */
+function lista(valor: string | undefined): string[] {
+  return (valor ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item !== '');
 }
 
 export function lerConfig(ambiente: Record<string, string | undefined>): Config {
@@ -20,10 +34,15 @@ export function lerConfig(ambiente: Record<string, string | undefined>): Config 
   if (!IANAZone.isValidZone(fuso)) {
     throw new Error(`COWORKIA_FUSO inválido: "${fuso}". Use um fuso como America/Sao_Paulo.`);
   }
-  const importantes = (ambiente.COWORKIA_IMPORTANTES ?? '')
-    .split(',')
-    .map((endereco) => endereco.trim())
-    .filter((endereco) => endereco !== '');
   const agora = (ambiente.COWORKIA_AGORA ?? '').trim();
-  return { modo, fuso, importantes, agora: agora === '' ? null : agora };
+  const pasta = (ambiente.COWORKIA_WHATSAPP_PASTA ?? '').trim();
+  return {
+    modo,
+    fuso,
+    importantes: lista(ambiente.COWORKIA_IMPORTANTES),
+    agora: agora === '' ? null : agora,
+    whatsappPasta: pasta === '' ? null : pasta,
+    whatsappEu: lista(ambiente.COWORKIA_WHATSAPP_EU),
+    whatsappImportantes: lista(ambiente.COWORKIA_WHATSAPP_IMPORTANTES),
+  };
 }

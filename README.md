@@ -1,6 +1,6 @@
 # coworkIA
 
-Um projeto pessoal. Um servidor MCP que roda no seu PC e dá à sua IA (Claude, Codex, VS Code) ferramentas para ler e fazer a triagem dos e-mails, consultar a agenda, criticar um rascunho e montar o resumo do dia. A versão 1 está descrita em [docs/specs/2026-11-04-versao-1.md](docs/specs/2026-11-04-versao-1.md), com os adendos dos planos [B](docs/specs/2026-11-05-versao-1-adendo.md) e [C](docs/specs/2026-11-05-versao-1-adendo-c.md) e o do [ajuste dos anotados](docs/specs/2026-11-06-versao-1-adendo-anotados.md). Ela roda no modo de demonstração, com uma caixa de e-mail e uma agenda inventadas, ou com o seu Gmail e a sua Agenda do Google, só para leitura.
+Um projeto pessoal. Um servidor MCP que roda no seu PC e dá à sua IA (Claude, Codex, VS Code) ferramentas para ler e fazer a triagem dos e-mails e das conversas exportadas do WhatsApp, consultar a agenda, criticar um rascunho e montar o resumo do dia. A versão 1 está descrita em [docs/specs/2026-11-04-versao-1.md](docs/specs/2026-11-04-versao-1.md), com os adendos dos planos [B](docs/specs/2026-11-05-versao-1-adendo.md) e [C](docs/specs/2026-11-05-versao-1-adendo-c.md) e o do [ajuste dos anotados](docs/specs/2026-11-06-versao-1-adendo-anotados.md). A versão 2 começa pelo WhatsApp exportado, descrito em [docs/specs/2026-11-06-versao-2-whatsapp.md](docs/specs/2026-11-06-versao-2-whatsapp.md). Ela roda no modo de demonstração, com uma caixa de e-mail e uma agenda inventadas, ou com o seu Gmail e a sua Agenda do Google, só para leitura.
 
 ## Como usar
 
@@ -15,9 +15,9 @@ Precisa do Node.js 24 ou mais novo.
 
     npm run resumo
 
-Mostra o resumo do dia da demonstração: a triagem dos e-mails das últimas 24 horas, a agenda de hoje, os conflitos e o próximo compromisso.
+Mostra o resumo do dia da demonstração: a triagem dos e-mails das últimas 24 horas, a agenda de hoje, os conflitos, o próximo compromisso e a triagem das conversas do WhatsApp.
 
-Na demonstração, o e-mail de `diretoria@example.com` só vira urgente (regra T4) com a variável `COWORKIA_IMPORTANTES=diretoria@example.com`. Sem ela, ele aparece em "pedem resposta".
+Na demonstração, o e-mail de `diretoria@example.com` só vira urgente (regra T4) com a variável `COWORKIA_IMPORTANTES=diretoria@example.com`. Sem ela, ele aparece em "pedem resposta". Do mesmo jeito, a conversa da Marta Souza no WhatsApp só vira urgente (regra W3) com `COWORKIA_WHATSAPP_IMPORTANTES="Marta Souza"`.
 
 ### Ligar numa IA
 
@@ -57,7 +57,7 @@ O servidor fala MCP pela entrada e pela saída padrão. Troque `/caminho/para/co
 
   O VS Code ainda aceita o `.vscode/mcp.json`, mas a documentação dele, de 04/11/2026, o marca como antigo ("deprecated") no assistente que adiciona servidores. O outro destino da documentação, o `.mcp.json` na raiz do projeto, usa o formato portátil do Copilot, com a chave `mcpServers`, e o assistente só o oferece com a opção experimental `chat.mcp.workspaceRootConfig.enabled` ligada.
 
-As ferramentas são `listar_emails`, `ler_email`, `triagem_emails`, `listar_eventos`, `verificar_disponibilidade`, `criticar_rascunho` e `resumo_do_dia`, e o prompt é `criticar_rascunho`.
+As ferramentas são `listar_emails`, `ler_email`, `triagem_emails`, `listar_eventos`, `verificar_disponibilidade`, `criticar_rascunho`, `resumo_do_dia`, `listar_conversas`, `ler_conversa` e `triagem_whatsapp`, e o prompt é `criticar_rascunho`.
 
 ### Variáveis de ambiente
 
@@ -67,6 +67,9 @@ As ferramentas são `listar_emails`, `ler_email`, `triagem_emails`, `listar_even
 | `COWORKIA_FUSO` | O fuso das datas e horas | `America/Sao_Paulo` |
 | `COWORKIA_IMPORTANTES` | Remetentes importantes, separados por vírgula | nenhum |
 | `COWORKIA_AGORA` | Fixa o relógio; só para testes e demonstração | o relógio do sistema |
+| `COWORKIA_WHATSAPP_PASTA` | A pasta das conversas exportadas do WhatsApp, no modo `google` | nenhuma |
+| `COWORKIA_WHATSAPP_EU` | Os nomes com que você aparece nas suas mensagens exportadas, separados por vírgula | nenhum |
+| `COWORKIA_WHATSAPP_IMPORTANTES` | Os contatos importantes no WhatsApp, como aparecem na exportação | nenhum |
 
 ### Usar o Gmail e a Agenda de verdade
 
@@ -85,10 +88,28 @@ No modo google, o coworkIA lê só a caixa de entrada, e no máximo 200 e-mails 
 
 Com o app em "Teste", o Google faz o login valer 7 dias; depois disso, rode `npm run login-google` de novo. Publicar o app tira esse limite, mas o Google pode pedir uma verificação para as permissões do Gmail, e isso não foi testado.
 
+### Ler as conversas do WhatsApp
+
+O coworkIA lê as conversas que você exporta pelo próprio WhatsApp. Ele não usa nenhuma biblioteca não oficial e não se conecta ao WhatsApp: só lê os arquivos, sem alterar nem enviar nada.
+
+1. Exporte cada conversa sem mídia. No Android, abra a conversa, toque em "Mais" e depois em "Exportar conversa", e escolha "Sem mídia". No iPhone, exporte sem mídia, tire o `_chat.txt` de dentro do `.zip` e renomeie o arquivo com o nome da conversa.
+2. Ponha os `.txt` numa pasta e defina `COWORKIA_WHATSAPP_PASTA` com o caminho dela.
+3. Defina `COWORKIA_WHATSAPP_EU` com o nome que aparece nas suas mensagens exportadas e, se quiser, os apelidos com que citam você nos grupos, separados por vírgula.
+4. Se quiser, defina `COWORKIA_WHATSAPP_IMPORTANTES` com os contatos importantes.
+
+A triagem olha, em cada conversa, o que chegou depois da sua última resposta, nas últimas 24 horas. Num grupo, só conta o que cita você. As limitações conhecidas:
+
+- uma mensagem de várias linhas pode ter, no meio, uma linha que imita o começo de outra mensagem. O coworkIA não consegue distinguir as duas: se a linha imitar uma mensagem sua, as mensagens de antes somem da triagem;
+- a hora com AM ou PM, os idiomas além do português e a mídia não são lidos;
+- a citação pelo número de telefone não é reconhecida, e um aviso do WhatsApp com ": " no meio pode virar uma mensagem;
+- um grupo em que só uma outra pessoa falou conta como conversa individual, e um contato que muda de nome no meio da conversa faz ela contar como grupo.
+
+O formato da exportação não é publicado pelo WhatsApp. O coworkIA foi feito a partir das variações conhecidas e ainda não foi medido com uma exportação real.
+
 ## Avisos
 
-- **Dados de terceiros e a LGPD:** o texto dos e-mails e da agenda vai para o provedor da IA que você usa. Num uso profissional, isso envolve dados de clientes e de colegas.
-- **Injeção de instrução:** um e-mail pode tentar mandar a IA fazer algo. O coworkIA nunca envia nada e marca o texto de terceiros como dado, mas a IA pode ter outras ferramentas. Use o coworkIA numa IA sem conectores que enviam e-mail ou mensagem, ou com a aprovação de cada chamada de ferramenta ligada.
+- **Dados de terceiros e a LGPD:** o texto dos e-mails, da agenda e das conversas do WhatsApp vai para o provedor da IA que você usa. Num uso profissional, isso envolve dados de clientes e de colegas.
+- **Injeção de instrução:** um e-mail ou uma mensagem pode tentar mandar a IA fazer algo. O coworkIA nunca envia nada e marca o texto de terceiros como dado, mas a IA pode ter outras ferramentas. Use o coworkIA numa IA sem conectores que enviam e-mail ou mensagem, ou com a aprovação de cada chamada de ferramenta ligada.
 - **E-mail da empresa:** só entra com a autorização da empresa.
 - **Limitações da triagem:** "Preciso disso até amanhã." não é detectado como prazo, e a citação do Outlook não é reconhecida.
 

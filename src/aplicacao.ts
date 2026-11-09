@@ -1,11 +1,18 @@
+import type { DateTime } from 'luxon';
 import type { Config } from './config.js';
-import { carregarDadosDemo } from './fontes/demo/dados.js';
+import { carregarDadosDemo, EU_DA_DEMONSTRACAO, fonteWhatsappDemo } from './fontes/demo/dados.js';
 import { criarFontesDemo } from './fontes/demo/fonte-demo.js';
 import { type Buscar, criarFontesGoogle } from './fontes/google/fonte-google.js';
 import type { Fontes } from './fontes/tipos.js';
+import { criarFonteWhatsapp } from './fontes/whatsapp/fonte-whatsapp.js';
 import type { Cofre } from './login/cofre.js';
 import { type CredenciaisDoCliente, credenciaisDoEnv } from './login/credenciais.js';
-import type { Dependencias } from './servico.js';
+import {
+  type Dependencias,
+  type DependenciasWhatsapp,
+  SEM_EU_DO_WHATSAPP,
+  SEM_PASTA_DO_WHATSAPP,
+} from './servico.js';
 import { relogioDoSistema, relogioFixo } from './tempo.js';
 
 /** O que o modo google usa de fora: o cli.ts passa os de verdade, e os testes, os de mentira. */
@@ -30,6 +37,32 @@ function fontesDoGoogle(config: Config, google: RecursosDoGoogle): Fontes {
   });
 }
 
+/** Versão 2, F1 e V2: no modo demo, a pasta e o usuário fixos; no google, os da configuração. */
+function whatsappDaConfig(
+  config: Config,
+  pastaDemo: string,
+  agora: DateTime,
+): DependenciasWhatsapp | string {
+  if (config.modo === 'demo') {
+    return {
+      fonte: fonteWhatsappDemo(pastaDemo, agora, config.fuso),
+      eu: EU_DA_DEMONSTRACAO,
+      importantes: config.whatsappImportantes,
+    };
+  }
+  if (config.whatsappPasta === null) {
+    return SEM_PASTA_DO_WHATSAPP;
+  }
+  if (config.whatsappEu.length === 0) {
+    return SEM_EU_DO_WHATSAPP;
+  }
+  return {
+    fonte: criarFonteWhatsapp({ pasta: config.whatsappPasta, fuso: config.fuso }),
+    eu: config.whatsappEu,
+    importantes: config.whatsappImportantes,
+  };
+}
+
 /** RQ2, AD1 e AD9: liga a configuração ao relógio e às fontes, conforme o modo. */
 export function criarDependencias(
   config: Config,
@@ -42,5 +75,11 @@ export function criarDependencias(
     config.modo === 'google'
       ? fontesDoGoogle(config, google)
       : criarFontesDemo(carregarDadosDemo(pastaDemo, relogio()), config.fuso);
-  return { fontes, relogio, fuso: config.fuso, importantes: config.importantes };
+  return {
+    fontes,
+    relogio,
+    fuso: config.fuso,
+    importantes: config.importantes,
+    whatsapp: whatsappDaConfig(config, pastaDemo, relogio()),
+  };
 }

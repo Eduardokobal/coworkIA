@@ -1,0 +1,4 @@
+{{U+200E}}[{{agora-30h:iphone}}] Carlos Lima: {{U+200E}}As mensagens e as ligações são protegidas com a criptografia de ponta a ponta.
+[{{agora-5h:iphone}}] Carlos Lima: Bom dia, Lúcia.
+[{{agora-4h:iphone}}] Carlos Lima: Preciso do orçamento até {{dia+1:dd/mm}}, combinado?
+[{{agora-4h:iphone}}] Carlos Lima: {{U+200E}}imagem ocultada
