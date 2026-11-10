@@ -42,8 +42,14 @@ describe('lerConfig (seção 8, AD1, versão 2, F1, V1 e W3, e parte 2, E1 e G3)
     });
   });
 
-  it('recusa um modo desconhecido', () => {
-    expect(() => lerConfig({ COWORKIA_MODO: 'outlook' })).toThrow('COWORKIA_MODO inválido');
+  it('aceita o modo arquivos (MA1)', () => {
+    expect(lerConfig({ COWORKIA_MODO: ' arquivos ' }).modo).toBe('arquivos');
+  });
+
+  it('recusa um modo desconhecido, citando os três (MA1)', () => {
+    expect(() => lerConfig({ COWORKIA_MODO: 'outlook' })).toThrow(
+      'COWORKIA_MODO inválido: "outlook". Use demo, google ou arquivos.',
+    );
   });
 
   it('recusa um fuso que não existe', () => {
