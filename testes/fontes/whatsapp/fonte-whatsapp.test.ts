@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Conversa } from '../../../src/dominio.js';
 import {
   type AvisoDaPasta,
+  avisoDeDataImpossivel,
   criarFonteWhatsapp,
   ErroDaPasta,
   ehArquivoDeConversa,
@@ -218,6 +219,25 @@ describe('a pasta das conversas (F2 e F4)', () => {
     ]);
   });
 
+  it('as linhas com data impossível viram o aviso, depois dos outros do arquivo (AW5)', async () => {
+    const pasta = pastaCom({
+      'A.txt': '[3/18/22, 14:56:01] Ana: oi\n',
+      'B.txt': `[3/18/22, 14:56:01] Ana: oi\n${LINHA}7/13/23, 15:00 - Ana: de novo\n`,
+      'C.txt': LINHA,
+    });
+    const { conversas, avisos } = await criarFonteWhatsapp({ pasta, fuso: SP }).conversas();
+    expect(conversas.map((conversa) => conversa.linhasComDataImpossivel)).toEqual([1, 2, 0]);
+    expect(avisos).toEqual([
+      { nome: 'A', texto: 'formato não reconhecido.' },
+      { nome: 'A', texto: avisoDeDataImpossivel(1) },
+      { nome: 'B', texto: 'linhas descartadas antes da primeira mensagem: 1.' },
+      { nome: 'B', texto: avisoDeDataImpossivel(2) },
+    ]);
+    expect(avisoDeDataImpossivel(2)).toBe(
+      'linhas com data impossível: 2; a exportação pode estar no formato mês/dia, e as datas e as mensagens desta conversa podem estar erradas.',
+    );
+  });
+
   it('a demonstração troca o texto antes da leitura', async () => {
     const pasta = pastaCom({ 'Demo.txt': '{{data}} - Ana: oi\n' });
     const fonte = criarFonteWhatsapp({
@@ -237,6 +257,7 @@ describe('semIdsRepetidos (F4)', () => {
       formato: 'android',
       mensagens: [],
       linhasDescartadas: 0,
+      linhasComDataImpossivel: 0,
     });
     const avisos: AvisoDaPasta[] = [];
     const restantes = semIdsRepetidos(

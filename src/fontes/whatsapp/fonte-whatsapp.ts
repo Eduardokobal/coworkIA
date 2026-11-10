@@ -23,6 +23,11 @@ export class ErroDaPasta extends Error {
   }
 }
 
+/** AW5: o aviso fixo das linhas com data impossível (AW4). */
+export function avisoDeDataImpossivel(quantas: number): string {
+  return `linhas com data impossível: ${quantas}; a exportação pode estar no formato mês/dia, e as datas e as mensagens desta conversa podem estar erradas.`;
+}
+
 /** Um aviso sobre a pasta. O nome, quando há, é de terceiros e passa pela S2 na saída. */
 export interface AvisoDaPasta {
   nome: string | null;
@@ -126,6 +131,9 @@ function lerPasta(opcoes: OpcoesDaFonte): ResultadoDaPasta {
         nome,
         texto: `linhas descartadas antes da primeira mensagem: ${leitura.linhasDescartadas}.`,
       });
+    }
+    if (leitura.linhasComDataImpossivel > 0) {
+      avisos.push({ nome, texto: avisoDeDataImpossivel(leitura.linhasComDataImpossivel) });
     }
     lidas.push({ id: idDoArquivo(arquivo), nome, ...leitura });
   }

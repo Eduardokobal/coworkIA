@@ -99,7 +99,12 @@ describe('lerExportacao: a continuação e as linhas descartadas (L3)', () => {
     ).toMatchObject({ formato: 'android', linhasDescartadas: 0 });
     expect(
       ler(['[05/11/2026, 14:30:00] Ana criou o grupo', '05/11/2026 14:32 - Ana: no outro formato']),
-    ).toEqual({ formato: 'iphone', mensagens: [], linhasDescartadas: 1 });
+    ).toEqual({
+      formato: 'iphone',
+      mensagens: [],
+      linhasDescartadas: 1,
+      linhasComDataImpossivel: 0,
+    });
   });
 
   it('a linha forjada no mesmo formato vira uma mensagem nova (L6, limitação conhecida)', () => {
@@ -149,7 +154,52 @@ describe('lerExportacao: as datas e as horas que não casam', () => {
       formato: null,
       mensagens: [],
       linhasDescartadas: 2,
+      linhasComDataImpossivel: 0,
     });
+  });
+});
+
+describe('lerExportacao: as linhas com data impossível (AW4)', () => {
+  it('conta, no Android e no iPhone, a linha com a forma da L1 e uma data que não existe', () => {
+    const android = ler([
+      '1/7/23, 14:00 - Ana: oi',
+      '7/13/23, 15:00 - Ana: o mês 13',
+      '31/04/2026 10:00 - Ana: abril tem 30 dias',
+    ]);
+    expect(android).toMatchObject({
+      formato: 'android',
+      linhasDescartadas: 0,
+      linhasComDataImpossivel: 2,
+    });
+    // Depois da primeira mensagem, a linha continua a anterior, como antes (L3).
+    expect(android.mensagens).toHaveLength(1);
+    expect(android.mensagens[0]?.texto.split('\n')).toHaveLength(3);
+    const iphone = ler(['[1/7/23, 14:00:01] Ana: oi', '[7/13/23, 15:00:02] Ana: de novo']);
+    expect(iphone).toMatchObject({ formato: 'iphone', linhasComDataImpossivel: 1 });
+  });
+
+  it('antes da primeira mensagem, a linha também é descartada e não fixa o formato', () => {
+    const lida = ler(['[3/18/22, 14:56:01] Ana: oi', '05/11/2026 14:32 - Ana: oi']);
+    expect(lida).toMatchObject({
+      formato: 'android',
+      linhasDescartadas: 1,
+      linhasComDataImpossivel: 1,
+    });
+  });
+
+  it('não contam os minutos 60 com a data certa nem a linha no outro formato depois de fixado', () => {
+    const lida = ler([
+      '05/11/2026 14:32 - Ana: oi',
+      '05/11/2026 14:60 - Ana: os minutos',
+      '[7/13/23, 15:00:02] Bia: no outro formato',
+    ]);
+    expect(lida.linhasComDataImpossivel).toBe(0);
+    expect(lida.mensagens).toHaveLength(1);
+  });
+
+  it('uma conversa brasileira sem nenhuma dá zero', () => {
+    const lida = ler(['05/11/2026 14:32 - Ana: oi', '06/11/2026 09:00 - Lúcia Prado: bom dia']);
+    expect(lida.linhasComDataImpossivel).toBe(0);
   });
 });
 

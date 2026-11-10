@@ -1,5 +1,6 @@
 import type { Categoria, Evento, MensagemWhatsapp, Pessoa } from '../dominio.js';
 import type { AvisoDoExtrato } from '../fontes/financas/fonte-financas.js';
+import type { AvisoDaPasta } from '../fontes/whatsapp/fonte-whatsapp.js';
 import { bloqueiaAgenda, ehDiaInteiro, intervaloDoEvento } from '../regras/disponibilidade.js';
 import type { Totais } from '../regras/resumo-financeiro.js';
 import type { EmailClassificado } from '../regras/triagem.js';
@@ -263,6 +264,14 @@ function conversaClassificadaParaSaida(item: ConversaClassificada, saida: Saida)
   };
 }
 
+/** Versão 2, 7.8, e AW5: os avisos da pasta, com o nome da conversa pela S2 e o id "pasta". */
+function avisosDaPasta(avisos: readonly AvisoDaPasta[], saida: Saida) {
+  return avisos.map((aviso) => ({
+    conversa: aviso.nome === null ? null : campo(aviso.nome, 'nome', 'whatsapp', 'pasta', saida),
+    aviso: aviso.texto,
+  }));
+}
+
 /** Versão 2, 7.8 */
 export function conversasParaSaida(lista: ListaDeConversas, saida: Saida) {
   return {
@@ -274,10 +283,7 @@ export function conversasParaSaida(lista: ListaDeConversas, saida: Saida) {
       mensagens: item.conversa.mensagens.length,
       esperando_voce: item.esperandoVoce,
     })),
-    avisos: lista.avisos.map((aviso) => ({
-      conversa: aviso.nome === null ? null : campo(aviso.nome, 'nome', 'whatsapp', 'pasta', saida),
-      aviso: aviso.texto,
-    })),
+    avisos: avisosDaPasta(lista.avisos, saida),
   };
 }
 
@@ -292,6 +298,7 @@ export function conversaLidaParaSaida(lida: ConversaLida, saida: Saida) {
       sua: mensagem.sua,
     })),
     completo: lida.completo,
+    aviso: lida.aviso,
   };
 }
 
@@ -305,6 +312,7 @@ export function triagemWhatsappParaSaida(resultado: ResultadoTriagemWhatsapp, sa
     urgente: itens(resultado.grupos.urgente),
     pede_resposta: itens(resultado.grupos.pede_resposta),
     informativo: itens(resultado.grupos.informativo),
+    avisos: avisosDaPasta(resultado.avisos, saida),
   };
 }
 
@@ -320,6 +328,7 @@ function whatsappDoResumo(whatsapp: ResultadoTriagemWhatsapp | string, saida: Sa
     analisadas: whatsapp.analisadas,
     urgentes: itens(whatsapp.grupos.urgente),
     pede_resposta: itens(whatsapp.grupos.pede_resposta),
+    avisos: avisosDaPasta(whatsapp.avisos, saida),
   };
 }
 
@@ -334,6 +343,13 @@ function linhasDoWhatsapp(whatsapp: ResultadoTriagemWhatsapp | string): string[]
     '',
     `WhatsApp das últimas 24 horas: ${contagem.urgente} urgentes, ${contagem.pede_resposta} pedem resposta e ${contagem.informativo} informativos (${whatsapp.analisadas} conversas analisadas).`,
   ];
+  // AW5: os avisos de data impossível vêm logo depois da contagem; sem eles, nada muda.
+  if (whatsapp.avisos.length > 0) {
+    linhas.push('', 'Avisos do WhatsApp:');
+    for (const aviso of whatsapp.avisos) {
+      linhas.push(`- ${texto(aviso.nome ?? '', 'nome')}: ${aviso.texto}`);
+    }
+  }
   const listar = (titulo: string, itens: ConversaClassificada[]) => {
     linhas.push('', titulo);
     if (itens.length === 0) {

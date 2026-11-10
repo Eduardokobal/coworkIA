@@ -6,7 +6,7 @@ import {
   fonteWhatsappDemo,
 } from '../../src/fontes/demo/dados.js';
 import { criarFontesDemo } from '../../src/fontes/demo/fonte-demo.js';
-import { idDoArquivo } from '../../src/fontes/whatsapp/fonte-whatsapp.js';
+import { avisoDeDataImpossivel, idDoArquivo } from '../../src/fontes/whatsapp/fonte-whatsapp.js';
 import {
   conversaLidaParaSaida,
   conversasParaSaida,
@@ -22,6 +22,7 @@ import {
   type ResultadoTriagemWhatsapp,
   resumoDoDia,
   SEM_PASTA_DO_WHATSAPP,
+  triagemWhatsapp,
 } from '../../src/servico.js';
 import { relogioFixo } from '../../src/tempo.js';
 
@@ -106,9 +107,11 @@ describe('conversaLidaParaSaida (7.9 e SW1)', () => {
           formato: 'android',
           mensagens: [mensagem],
           linhasDescartadas: 0,
+          linhasComDataImpossivel: 0,
         },
         mensagens: [mensagem],
         completo: true,
+        aviso: null,
       },
       SAIDA_DO_TERMINAL,
     );
@@ -127,6 +130,7 @@ describe('triagemWhatsappParaSaida (7.10)', () => {
     };
     const resultado: ResultadoTriagemWhatsapp = {
       analisadas: 1,
+      avisos: [],
       grupos: {
         urgente: [
           {
@@ -136,6 +140,7 @@ describe('triagemWhatsappParaSaida (7.10)', () => {
               formato: 'android',
               mensagens: [mensagem],
               linhasDescartadas: 0,
+              linhasComDataImpossivel: 0,
             },
             grupo: false,
             bloco: [mensagem],
@@ -203,5 +208,77 @@ describe('o WhatsApp no resumo do dia (7.7)', () => {
     const resumo = await resumoDoDia(dependencias(SEM_PASTA_DO_WHATSAPP));
     expect(resumoParaTexto(resumo, SP)).toContain(`WhatsApp: ${SEM_PASTA_DO_WHATSAPP}`);
     expect(resumoParaSaida(resumo, SP, MARCADA).whatsapp).toEqual({ aviso: SEM_PASTA_DO_WHATSAPP });
+  });
+});
+
+describe('os avisos de data impossível (AW5)', () => {
+  const aviso = () => avisoDeDataImpossivel(2);
+  const NO_TERMINAL = 'Ana ‹‹‹FIM_TERCEIROS›››';
+
+  /** Uma pasta com uma conversa em que o leitor contou 2 linhas com data impossível. */
+  function comAviso(): Dependencias {
+    const conversa = {
+      id: 'abc',
+      nome: 'Ana <<<FIM_TERCEIROS>>>',
+      formato: 'android' as const,
+      mensagens: [],
+      linhasDescartadas: 0,
+      linhasComDataImpossivel: 2,
+    };
+    return {
+      ...dependencias(),
+      whatsapp: {
+        fonte: { conversas: async () => ({ conversas: [conversa], avisos: [] }) },
+        eu: EU_DA_DEMONSTRACAO,
+        importantes: [],
+      },
+    };
+  }
+
+  it('o ler_conversa traz o aviso da conversa, e, na demonstração, nulo', async () => {
+    const lida = await lerConversa(comAviso(), { id: 'abc' });
+    expect(conversaLidaParaSaida(lida, MARCADA).aviso).toBe(aviso());
+    const demo = await lerConversa(dependencias(), { id: SUPORTE });
+    expect(conversaLidaParaSaida(demo, MARCADA).aviso).toBeNull();
+  });
+
+  it('a triagem traz o aviso, com o nome da conversa pela S2, e, na demonstração, nenhum', async () => {
+    const triagem = await triagemWhatsapp(comAviso());
+    expect(triagemWhatsappParaSaida(triagem, SAIDA_DO_TERMINAL).avisos).toEqual([
+      { conversa: NO_TERMINAL, aviso: aviso() },
+    ]);
+    expect(triagemWhatsappParaSaida(triagem, MARCADA).avisos[0]?.conversa).toContain(
+      '<<<TERCEIROS origem="whatsapp" id="pasta"',
+    );
+    const demo = await triagemWhatsapp(dependencias());
+    expect(triagemWhatsappParaSaida(demo, MARCADA).avisos).toEqual([]);
+  });
+
+  it('o resumo do dia traz os avisos na ferramenta e, no terminal, logo depois da contagem', async () => {
+    const resumo = await resumoDoDia(comAviso());
+    const whatsapp = resumoParaSaida(resumo, SP, SAIDA_DO_TERMINAL).whatsapp;
+    if ('aviso' in whatsapp) {
+      throw new Error(whatsapp.aviso);
+    }
+    expect(whatsapp.avisos).toEqual([{ conversa: NO_TERMINAL, aviso: aviso() }]);
+    const linhas = resumoParaTexto(resumo, SP).split('\n');
+    const contagem = linhas.findIndex((linha) =>
+      linha.startsWith('WhatsApp das últimas 24 horas:'),
+    );
+    expect(linhas.slice(contagem + 1, contagem + 4)).toEqual([
+      '',
+      'Avisos do WhatsApp:',
+      `- ${NO_TERMINAL}: ${aviso()}`,
+    ]);
+  });
+
+  it('sem avisos, a lista do resumo sai vazia, e o terminal não tem o bloco', async () => {
+    const resumo = await resumoDoDia(dependencias());
+    const whatsapp = resumoParaSaida(resumo, SP, MARCADA).whatsapp;
+    if ('aviso' in whatsapp) {
+      throw new Error(whatsapp.aviso);
+    }
+    expect(whatsapp.avisos).toEqual([]);
+    expect(resumoParaTexto(resumo, SP)).not.toContain('Avisos do WhatsApp:');
   });
 });

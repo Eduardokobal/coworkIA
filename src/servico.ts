@@ -4,6 +4,7 @@ import type { AvisoDoExtrato, FonteFinancas } from './fontes/financas/fonte-fina
 import type { Fontes } from './fontes/tipos.js';
 import {
   type AvisoDaPasta,
+  avisoDeDataImpossivel,
   ErroDaPasta,
   type FonteWhatsapp,
 } from './fontes/whatsapp/fonte-whatsapp.js';
@@ -142,11 +143,22 @@ export interface ConversaLida {
   conversa: Conversa;
   mensagens: MensagemLida[];
   completo: boolean;
+  /** AW5: o aviso das linhas com data impossível da conversa; nulo sem elas. */
+  aviso: string | null;
 }
 
 export interface ResultadoTriagemWhatsapp {
   grupos: GruposWhatsapp;
   analisadas: number;
+  /** AW5: o aviso de cada conversa da pasta com linhas com data impossível, na ordem dos arquivos. */
+  avisos: AvisoDaPasta[];
+}
+
+/** AW5: o aviso da conversa com linhas com data impossível, ou nulo sem elas. */
+function avisoDaConversa(conversa: Conversa): string | null {
+  return conversa.linhasComDataImpossivel > 0
+    ? avisoDeDataImpossivel(conversa.linhasComDataImpossivel)
+    : null;
 }
 
 async function contexto(dep: Dependencias): Promise<ContextoTriagem> {
@@ -318,6 +330,7 @@ export async function lerConversa(
       .slice(-limite)
       .map((mensagem) => ({ ...mensagem, sua: ehDoUsuario(mensagem.autor, whatsapp.eu) })),
     completo: doPeriodo.length <= limite,
+    aviso: avisoDaConversa(conversa),
   };
 }
 
@@ -336,7 +349,15 @@ export async function triagemWhatsapp(
     importantes: whatsapp.importantes,
   };
   const { conversas } = await whatsapp.fonte.conversas();
-  return { grupos: triarConversas(conversas, contexto, inicio), analisadas: conversas.length };
+  const avisos = conversas.flatMap((conversa) => {
+    const aviso = avisoDaConversa(conversa);
+    return aviso === null ? [] : [{ nome: conversa.nome, texto: aviso }];
+  });
+  return {
+    grupos: triarConversas(conversas, contexto, inicio),
+    analisadas: conversas.length,
+    avisos,
+  };
 }
 
 export interface EntradaListarLancamentos {
