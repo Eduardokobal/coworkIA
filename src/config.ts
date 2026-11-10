@@ -15,6 +15,10 @@ export interface Config {
   whatsappEu: string[];
   /** Versão 2, W3: os contatos importantes, como aparecem na exportação. */
   whatsappImportantes: string[];
+  /** Versão 2, parte 2, E1: a pasta dos extratos OFX, lida só no modo google. */
+  financasPasta: string | null;
+  /** Versão 2, parte 2, G3: a COWORKIA_FINANCAS_CATEGORIAS, como veio. */
+  financasCategorias: string;
 }
 
 /** Uma lista separada por vírgula, sem os espaços das pontas e sem os itens vazios. */
@@ -36,6 +40,7 @@ export function lerConfig(ambiente: Record<string, string | undefined>): Config 
   }
   const agora = (ambiente.COWORKIA_AGORA ?? '').trim();
   const pasta = (ambiente.COWORKIA_WHATSAPP_PASTA ?? '').trim();
+  const pastaDasFinancas = (ambiente.COWORKIA_FINANCAS_PASTA ?? '').trim();
   return {
     modo,
     fuso,
@@ -44,5 +49,7 @@ export function lerConfig(ambiente: Record<string, string | undefined>): Config 
     whatsappPasta: pasta === '' ? null : pasta,
     whatsappEu: lista(ambiente.COWORKIA_WHATSAPP_EU),
     whatsappImportantes: lista(ambiente.COWORKIA_WHATSAPP_IMPORTANTES),
+    financasPasta: pastaDasFinancas === '' ? null : pastaDasFinancas,
+    financasCategorias: ambiente.COWORKIA_FINANCAS_CATEGORIAS ?? '',
   };
 }
