@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import type { DateTime } from 'luxon';
 import { z } from 'zod';
 import { esquemaEventoDaApi, eventoDaApi } from '../calendar-api.js';
+import { criarFonteFinancas, type FonteFinancas } from '../financas/fonte-financas.js';
 import { criarFonteWhatsapp, type FonteWhatsapp } from '../whatsapp/fonte-whatsapp.js';
 import type { DadosDemo } from './fonte-demo.js';
 import { resolverModelos, resolverObjeto } from './modelos.js';
@@ -44,6 +45,19 @@ export function fonteWhatsappDemo(pasta: string, agora: DateTime, fuso: string):
   return criarFonteWhatsapp({
     pasta: join(pasta, 'whatsapp'),
     fuso,
+    preparar: (texto) => resolverModelos(texto, agora),
+  });
+}
+
+/** Versão 2, parte 2, E1 e seção 8: os extratos da demonstração, com os modelos trocados. */
+export function fonteFinancasDemo(
+  pasta: string,
+  agora: DateTime,
+  segredo: Uint8Array,
+): FonteFinancas {
+  return criarFonteFinancas({
+    pasta: join(pasta, 'financas'),
+    segredo,
     preparar: (texto) => resolverModelos(texto, agora),
   });
 }
