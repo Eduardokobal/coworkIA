@@ -8,6 +8,7 @@ import {
   fonteWhatsappDemo,
 } from './fontes/demo/dados.js';
 import { criarFontesDemo } from './fontes/demo/fonte-demo.js';
+import { fontesDesligadas } from './fontes/desligadas.js';
 import { criarFonteFinancas } from './fontes/financas/fonte-financas.js';
 import { type Buscar, criarFontesGoogle } from './fontes/google/fonte-google.js';
 import type { Fontes } from './fontes/tipos.js';
@@ -46,7 +47,10 @@ function fontesDoGoogle(config: Config, google: RecursosDoGoogle): Fontes {
   });
 }
 
-/** Versão 2, F1 e V2: no modo demo, a pasta e o usuário fixos; no google, os da configuração. */
+/**
+ * Versão 2, F1 e V2, e MA2: no modo demo, a pasta e o usuário fixos; no google e no arquivos, os da
+ * configuração.
+ */
 function whatsappDaConfig(
   config: Config,
   pastaDemo: string,
@@ -72,7 +76,10 @@ function whatsappDaConfig(
   };
 }
 
-/** Versão 2, parte 2, E1 e G3: no modo demo, os extratos da demonstração; no google, a pasta. */
+/**
+ * Versão 2, parte 2, E1 e G3, e MA2: no modo demo, os extratos da demonstração; no google e no
+ * arquivos, a pasta.
+ */
 function financasDaConfig(
   config: Config,
   pastaDemo: string,
@@ -94,7 +101,24 @@ function financasDaConfig(
   };
 }
 
-/** RQ2, AD1 e AD9: liga a configuração ao relógio e às fontes, conforme o modo. */
+/** AD9 e MA2: as fontes de e-mail e agenda de cada modo. */
+function fontesDoModo(
+  config: Config,
+  pastaDemo: string,
+  agora: DateTime,
+  google: RecursosDoGoogle,
+): Fontes {
+  if (config.modo === 'google') {
+    return fontesDoGoogle(config, google);
+  }
+  // MA2: o modo arquivos não lê o .env, não toca no cofre e não chama o Google.
+  if (config.modo === 'arquivos') {
+    return fontesDesligadas();
+  }
+  return criarFontesDemo(carregarDadosDemo(pastaDemo, agora), config.fuso);
+}
+
+/** RQ2, AD1 e AD9, e MA1: liga a configuração ao relógio e às fontes, conforme o modo. */
 export function criarDependencias(
   config: Config,
   pastaDemo: string,
@@ -102,10 +126,7 @@ export function criarDependencias(
 ): Dependencias {
   const relogio =
     config.agora === null ? relogioDoSistema(config.fuso) : relogioFixo(config.agora, config.fuso);
-  const fontes =
-    config.modo === 'google'
-      ? fontesDoGoogle(config, google)
-      : criarFontesDemo(carregarDadosDemo(pastaDemo, relogio()), config.fuso);
+  const fontes = fontesDoModo(config, pastaDemo, relogio(), google);
   return {
     fontes,
     relogio,
