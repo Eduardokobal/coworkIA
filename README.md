@@ -65,14 +65,14 @@ As ferramentas são `listar_emails`, `ler_email`, `triagem_emails`, `listar_even
 
 | Variável | Para quê | Padrão |
 |---|---|---|
-| `COWORKIA_MODO` | `demo` ou `google` (o `google` precisa do login; veja abaixo) | `demo` |
+| `COWORKIA_MODO` | `demo`, `google` ou `arquivos` (o `google` precisa do login; o `arquivos` lê só o WhatsApp e os extratos; veja abaixo) | `demo` |
 | `COWORKIA_FUSO` | O fuso das datas e horas | `America/Sao_Paulo` |
 | `COWORKIA_IMPORTANTES` | Remetentes importantes, separados por vírgula | nenhum |
 | `COWORKIA_AGORA` | Fixa o relógio; só para testes e demonstração | o relógio do sistema |
-| `COWORKIA_WHATSAPP_PASTA` | A pasta das conversas exportadas do WhatsApp, no modo `google` | nenhuma |
+| `COWORKIA_WHATSAPP_PASTA` | A pasta das conversas exportadas do WhatsApp, no modo `google` ou `arquivos` | nenhuma |
 | `COWORKIA_WHATSAPP_EU` | Os nomes com que você aparece nas suas mensagens exportadas, separados por vírgula | nenhum |
 | `COWORKIA_WHATSAPP_IMPORTANTES` | Os contatos importantes no WhatsApp, como aparecem na exportação | nenhum |
-| `COWORKIA_FINANCAS_PASTA` | A pasta dos extratos OFX, no modo `google` | nenhuma |
+| `COWORKIA_FINANCAS_PASTA` | A pasta dos extratos OFX, no modo `google` ou `arquivos` | nenhuma |
 | `COWORKIA_FINANCAS_CATEGORIAS` | As suas categorias, no formato `nome=termo1,termo2;nome2=termo3`; valem antes das do coworkIA | nenhuma |
 
 ### Usar o Gmail e a Agenda de verdade
@@ -91,6 +91,18 @@ O coworkIA só lê: as permissões pedidas são `gmail.readonly` e `calendar.rea
 No modo google, o coworkIA lê só a caixa de entrada, e no máximo 200 e-mails por chamada. Para sair, rode `npm run logout-google`, que apaga o token do cofre.
 
 Com o app em "Teste", o Google faz o login valer 7 dias; depois disso, rode `npm run login-google` de novo. Publicar o app tira esse limite, mas o Google pode pedir uma verificação para as permissões do Gmail, e isso não foi testado.
+
+### Usar só o WhatsApp e os extratos
+
+Se você não quer conectar o Google, o modo `arquivos` lê só as conversas exportadas do WhatsApp e os extratos OFX. Ele não pede o login do Google nem o `.env` e não toca no cofre do sistema.
+
+1. Defina `COWORKIA_MODO=arquivos` para o servidor e as variáveis da pasta que você vai usar: a `COWORKIA_WHATSAPP_PASTA` e a `COWORKIA_WHATSAPP_EU` para o WhatsApp, e a `COWORKIA_FINANCAS_PASTA` para os extratos. No Claude Code, por exemplo:
+
+       claude mcp add coworkia -e COWORKIA_MODO=arquivos -e COWORKIA_WHATSAPP_PASTA=/caminho/das/conversas -e "COWORKIA_WHATSAPP_EU=Seu Nome" -- node /caminho/para/coworkIA/dist/cli.js
+
+2. As duas seções abaixo dizem como exportar as conversas e baixar os extratos.
+
+Nesse modo, as ferramentas de e-mail e agenda respondem que não estão ligadas, e o resumo do dia traz o mesmo aviso no lugar do e-mail e da agenda, com o WhatsApp.
 
 ### Ler as conversas do WhatsApp
 
@@ -126,7 +138,7 @@ As ferramentas mostram a conta só com os 4 últimos dígitos, como "Conta corre
 - as categorias são palavras na descrição e erram às vezes, e as suas corrigem;
 - uma transferência entre as suas contas conta como entrada numa e saída na outra;
 - um lançamento cuja data, valor ou descrição mude entre duas exportações conta duas vezes, e dois lançamentos iguais do mesmo dia, cada um num arquivo que não traz o outro, contam uma vez;
-- no modo `google`, ler os extratos também pede o login do Google.
+- no modo `google`, ler os extratos também pede o login do Google; o modo `arquivos` lê os extratos sem ele.
 
 O formato OFX é público, mas cada banco o usa do seu jeito. O coworkIA foi feito a partir da especificação e medido com extratos de exemplo publicados por projetos abertos, mas ainda não com um extrato real.
 

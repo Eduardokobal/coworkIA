@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it, vi } from 'vitest';
 import { criarDependencias, type RecursosDoGoogle } from '../src/aplicacao.js';
+import { EMAIL_E_AGENDA_DESLIGADOS, EmailEAgendaDesligados } from '../src/fontes/desligadas.js';
 import type { Buscar } from '../src/fontes/google/fonte-google.js';
 import type { CredenciaisDoCliente } from '../src/login/credenciais.js';
 import {
@@ -187,5 +188,43 @@ describe('as finanças nas dependências (versão 2, parte 2, E1, G3 e F-D7)', (
     vi.mocked(randomBytes).mockClear();
     criarDependencias({ ...BASE, modo: 'demo' as const }, PASTA, GOOGLE_PROIBIDO);
     expect(vi.mocked(randomBytes).mock.calls).toEqual([[32]]);
+  });
+});
+
+describe('o modo arquivos nas dependências (MA2 e MA3)', () => {
+  const ARQUIVOS = {
+    ...BASE,
+    modo: 'arquivos' as const,
+    whatsappPasta: join(PASTA, 'whatsapp'),
+    whatsappEu: ['Eu'],
+    financasPasta: join(PASTA, 'financas'),
+  };
+
+  it('lê as pastas do WhatsApp e das finanças sem tocar no .env, no cofre nem na rede', async () => {
+    const dep = criarDependencias(ARQUIVOS, PASTA, GOOGLE_PROIBIDO);
+    if (typeof dep.whatsapp !== 'object' || typeof dep.financas !== 'object') {
+      throw new Error('o modo arquivos ficou sem as pastas');
+    }
+    expect(dep.whatsapp.eu).toEqual(['Eu']);
+    // As pastas são lidas como estão, sem trocar os modelos da demonstração, como no modo google.
+    const { conversas } = await dep.whatsapp.fonte.conversas();
+    expect(conversas.length).toBe(8);
+    expect(conversas.every((conversa) => conversa.formato === null)).toBe(true);
+    expect((await dep.financas.fonte.extratos()).lancamentos).toEqual([]);
+  });
+
+  it('as fontes de e-mail e agenda dão o erro do modo arquivos, sem chamar nada', async () => {
+    const { fontes } = criarDependencias(ARQUIVOS, PASTA, GOOGLE_PROIBIDO);
+    await expect(fontes.email.enderecoDoUsuario()).rejects.toBeInstanceOf(EmailEAgendaDesligados);
+    await expect(fontes.email.listar({ limite: 1 })).rejects.toThrow(EMAIL_E_AGENDA_DESLIGADOS);
+    await expect(fontes.email.ler('x')).rejects.toThrow(EMAIL_E_AGENDA_DESLIGADOS);
+  });
+
+  it('sem as variáveis, diz o que falta, como o modo google', () => {
+    const semNada = criarDependencias({ ...BASE, modo: 'arquivos' }, PASTA, GOOGLE_PROIBIDO);
+    expect(semNada.whatsapp).toBe(SEM_PASTA_DO_WHATSAPP);
+    expect(semNada.financas).toBe(SEM_PASTA_DAS_FINANCAS);
+    const semEu = { ...BASE, modo: 'arquivos' as const, whatsappPasta: 'C:/conversas' };
+    expect(criarDependencias(semEu, PASTA, GOOGLE_PROIBIDO).whatsapp).toBe(SEM_EU_DO_WHATSAPP);
   });
 });

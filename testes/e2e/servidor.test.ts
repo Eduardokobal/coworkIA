@@ -1,4 +1,7 @@
 import { spawn } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
@@ -563,4 +566,61 @@ describe('o stdout só tem o protocolo (RQ8)', () => {
     expect(erro).toContain('coworkIA: servidor MCP no modo demo');
     expect(erro).not.toContain('FIM_TERCEIROS');
   }, 30_000);
+});
+
+describe('o servidor no modo arquivos (MA2, MA3 e MA7)', () => {
+  // A garantia de que o modo arquivos não lê o .env, o cofre nem a rede é o teste da aplicação,
+  // com os recursos do Google que falham se forem usados. Este teste mostra que o servidor sobe
+  // e funciona nesse modo, com uma pasta temporária no lugar da pasta do usuário.
+  let arquivos: Client;
+  let pasta: string;
+
+  beforeAll(async () => {
+    pasta = mkdtempSync(join(tmpdir(), 'coworkia-arquivos-'));
+    writeFileSync(
+      join(pasta, 'Conversa do WhatsApp com Ana.txt'),
+      '04/11/2026 09:00 - Ana: Oi, tudo bem?\n',
+    );
+    arquivos = new Client({ name: 'teste-modo-arquivos', version: '0.0.0' });
+    await arquivos.connect(
+      new StdioClientTransport({
+        command: process.execPath,
+        args: [CLI],
+        env: {
+          ...AMBIENTE,
+          COWORKIA_MODO: 'arquivos',
+          COWORKIA_WHATSAPP_PASTA: pasta,
+          COWORKIA_WHATSAPP_EU: 'Lúcia Prado',
+        },
+        stderr: 'pipe',
+      }),
+    );
+  }, 30_000);
+
+  afterAll(async () => {
+    await arquivos.close();
+    rmSync(pasta, { recursive: true, force: true });
+  });
+
+  it('sobe sem o login do Google e oferece as 12 ferramentas', async () => {
+    const { tools } = await arquivos.listTools();
+    expect(tools).toHaveLength(12);
+  });
+
+  it('o listar_emails dá a mensagem fixa, como erro, e o listar_conversas lê a pasta', async () => {
+    const emails = await arquivos.callTool({ name: 'listar_emails', arguments: {} });
+    expect(emails.isError).toBe(true);
+    expect(JSON.stringify(emails.content)).toContain(
+      'O e-mail e a agenda não estão ligados no modo arquivos. Use o modo google para lê-los.',
+    );
+    const conversas = await arquivos.callTool({ name: 'listar_conversas', arguments: {} });
+    expect(conversas.isError).not.toBe(true);
+    const partes = conversas.content as Array<{ text?: string }>;
+    const lista = JSON.parse(partes.map((parte) => parte.text ?? '').join('')) as {
+      conversas: Array<{ nome: string; mensagens: number }>;
+    };
+    expect(lista.conversas).toHaveLength(1);
+    expect(lista.conversas[0]?.nome).toContain('>>>Ana<<<');
+    expect(lista.conversas[0]?.mensagens).toBe(1);
+  });
 });

@@ -140,6 +140,14 @@ export function eventoParaSaida(evento: Evento, fuso: string, saida: Saida) {
 
 /** 7.7, nas ferramentas */
 export function resumoParaSaida(resumo: ResumoDoDia, fuso: string, saida: Saida) {
+  // MA4: no modo arquivos, o aviso no lugar dos campos do e-mail e da agenda.
+  if (resumo.emailEAgenda !== null) {
+    return {
+      data: resumo.hoje.toISODate(),
+      email_e_agenda: { aviso: resumo.emailEAgenda },
+      whatsapp: whatsappDoResumo(resumo.whatsapp, saida),
+    };
+  }
   const itens = (lista: EmailClassificado[]) =>
     lista.map(({ email, classificacao }) => ({
       id: email.id,
@@ -186,6 +194,15 @@ function situacao(evento: Evento): string {
 
 /** 7.7 no terminal: os passos 1 a 5 da S2, sem a marcação. */
 export function resumoParaTexto(resumo: ResumoDoDia, fuso: string): string {
+  // MA4: no modo arquivos, a linha do aviso no lugar do e-mail e da agenda.
+  if (resumo.emailEAgenda !== null) {
+    return [
+      `Resumo do dia ${resumo.hoje.toFormat('dd/MM/yyyy')}`,
+      '',
+      `E-mail e agenda: ${resumo.emailEAgenda}`,
+      ...linhasDoWhatsapp(resumo.whatsapp),
+    ].join('\n');
+  }
   const texto = (valor: string, tipo: Campo) => prepararTexto(valor, tipo).texto;
   const contagem = contar(resumo.triagem);
   const linhas = [

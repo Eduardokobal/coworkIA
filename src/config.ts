@@ -1,7 +1,8 @@
 import { IANAZone } from 'luxon';
 import { FUSO_PADRAO } from './tempo.js';
 
-export type Modo = 'demo' | 'google';
+/** MA1: o modo arquivos lê só as pastas do WhatsApp e dos extratos, sem o Google. */
+export type Modo = 'demo' | 'google' | 'arquivos';
 
 export interface Config {
   modo: Modo;
@@ -9,13 +10,13 @@ export interface Config {
   importantes: string[];
   /** AD1: só para testes e demonstração; fixa o relógio. */
   agora: string | null;
-  /** Versão 2, F1: a pasta das conversas exportadas, lida só no modo google. */
+  /** Versão 2, F1, e MA2: a pasta das conversas exportadas, lida nos modos google e arquivos. */
   whatsappPasta: string | null;
   /** Versão 2, V1: os nomes com que o usuário aparece na exportação. */
   whatsappEu: string[];
   /** Versão 2, W3: os contatos importantes, como aparecem na exportação. */
   whatsappImportantes: string[];
-  /** Versão 2, parte 2, E1: a pasta dos extratos OFX, lida só no modo google. */
+  /** Versão 2, parte 2, E1, e MA2: a pasta dos extratos OFX, lida nos modos google e arquivos. */
   financasPasta: string | null;
   /** Versão 2, parte 2, G3: a COWORKIA_FINANCAS_CATEGORIAS, como veio. */
   financasCategorias: string;
@@ -31,8 +32,8 @@ function lista(valor: string | undefined): string[] {
 
 export function lerConfig(ambiente: Record<string, string | undefined>): Config {
   const modo = (ambiente.COWORKIA_MODO ?? '').trim() || 'demo';
-  if (modo !== 'demo' && modo !== 'google') {
-    throw new Error(`COWORKIA_MODO inválido: "${modo}". Use demo ou google.`);
+  if (modo !== 'demo' && modo !== 'google' && modo !== 'arquivos') {
+    throw new Error(`COWORKIA_MODO inválido: "${modo}". Use demo, google ou arquivos.`);
   }
   const fuso = (ambiente.COWORKIA_FUSO ?? '').trim() || FUSO_PADRAO;
   if (!IANAZone.isValidZone(fuso)) {
