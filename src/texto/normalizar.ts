@@ -20,9 +20,16 @@ function sequenciaEm(lista: readonly string[], alvo: readonly string[], inicio: 
   return alvo.every((palavra, deslocamento) => lista[inicio + deslocamento] === palavra);
 }
 
-/** N5: o termo casa quando as suas palavras aparecem em sequência, inteiras. */
-export function contemTermo(textoNormalizado: string, termo: string): boolean {
-  const alvo = palavras(normalizar(termo));
+/**
+ * N5: o termo casa quando as suas palavras aparecem em sequência, inteiras. O termo passa pela N1 a
+ * N3, ou pela normalização dada, como a das categorias, que não usa a N3.
+ */
+export function contemTermo(
+  textoNormalizado: string,
+  termo: string,
+  normalizarTermo: (texto: string) => string = normalizar,
+): boolean {
+  const alvo = palavras(normalizarTermo(termo));
   if (alvo.length === 0) {
     return false;
   }

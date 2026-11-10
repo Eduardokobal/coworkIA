@@ -6,6 +6,8 @@ import {
   emailCompleto,
   emailResumido,
   eventoParaSaida,
+  lancamentosParaSaida,
+  resumoFinanceiroParaSaida,
   resumoParaSaida,
   type Saida,
   triagemParaSaida,
@@ -21,7 +23,9 @@ import {
   listarConversas,
   listarEmails,
   listarEventos,
+  listarLancamentos,
   resumoDoDia,
+  resumoFinanceiro,
   triagem,
   triagemWhatsapp,
 } from './servico.js';
@@ -194,6 +198,52 @@ export function criarServidor(dep: Dependencias): McpServer {
     },
     async (entrada) =>
       comoTexto(triagemWhatsappParaSaida(await triagemWhatsapp(dep, entrada.desde), saidaNova())),
+  );
+
+  servidor.registerTool(
+    'listar_lancamentos',
+    {
+      title: 'Listar os lançamentos dos extratos',
+      description: `Lista os lançamentos dos extratos OFX, do mais novo para o mais velho, com a conta, a data, o valor em reais (negativo é saída), a descrição e a categoria. Sem o desde, o período começa 30 dias antes do ate ou de hoje; sem o ate, ele não tem fim. O id da conta muda quando o servidor reinicia. ${AVISO_DE_TERCEIROS}`,
+      inputSchema: {
+        desde: z.string().optional(),
+        ate: z.string().optional(),
+        conta: z.string().min(1).optional(),
+        categoria: z.string().optional(),
+        busca: z.string().optional(),
+        limite: z.number().int().min(1).max(200).optional(),
+      },
+    },
+    async (entrada) =>
+      comoTexto(
+        lancamentosParaSaida(
+          await listarLancamentos(dep, {
+            desde: entrada.desde,
+            ate: entrada.ate,
+            conta: entrada.conta,
+            categoria: entrada.categoria,
+            busca: entrada.busca,
+            limite: entrada.limite,
+          }),
+          saidaNova(),
+        ),
+      ),
+  );
+
+  servidor.registerTool(
+    'resumo_financeiro',
+    {
+      title: 'Resumo financeiro do mês',
+      description: `Resume um mês dos extratos OFX: as entradas, as saídas e o total por categoria e por conta, com o saldo de cada conta e até que data o extrato vai. O pagamento da fatura e os investimentos ficam fora do total. ${AVISO_DE_TERCEIROS}`,
+      inputSchema: {
+        mes: z
+          .string()
+          .regex(/^\d{4}-(0[1-9]|1[0-2])$/)
+          .optional(),
+      },
+    },
+    async (entrada) =>
+      comoTexto(resumoFinanceiroParaSaida(await resumoFinanceiro(dep, entrada.mes), saidaNova())),
   );
 
   servidor.registerPrompt(

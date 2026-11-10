@@ -69,7 +69,7 @@ function textos(valor: unknown): string[] {
 }
 
 const ABERTURA =
-  /^<<<TERCEIROS origem="(?:email|agenda|whatsapp)" id="[A-Za-z0-9_-]+" chave="([0-9a-f]{32})">>>/;
+  /^<<<TERCEIROS origem="(?:email|agenda|whatsapp|extrato)" id="[A-Za-z0-9_-]+" chave="([0-9a-f]{32})">>>/;
 
 interface PessoaNaSaida {
   nome: string;
@@ -103,7 +103,7 @@ async function esperar(condicao: () => boolean, restantes = 100): Promise<void> 
 }
 
 describe('servidor MCP no modo demo (seções 7 e 12)', () => {
-  it('oferece as 10 ferramentas e o prompt', async () => {
+  it('oferece as 12 ferramentas e o prompt', async () => {
     const { tools } = await cliente.listTools();
     expect(tools.map((ferramenta) => ferramenta.name).sort()).toEqual([
       'criticar_rascunho',
@@ -112,7 +112,9 @@ describe('servidor MCP no modo demo (seções 7 e 12)', () => {
       'listar_conversas',
       'listar_emails',
       'listar_eventos',
+      'listar_lancamentos',
       'resumo_do_dia',
+      'resumo_financeiro',
       'triagem_emails',
       'triagem_whatsapp',
       'verificar_disponibilidade',
@@ -449,6 +451,73 @@ describe('as ferramentas do WhatsApp no modo demo (versão 2, seções 7 e 10)',
     const { erro, texto } = await chamar('ler_conversa', { id: '../emails.json' });
     expect(erro).toBe(true);
     expect(texto).toContain('Conversa não encontrada.');
+  });
+});
+
+describe('as ferramentas das finanças no modo demo (versão 2, parte 2, seções 7 e 9)', () => {
+  it('listar_lancamentos marca a descrição com a origem extrato e o id da conta', async () => {
+    const lista = (await dados('listar_lancamentos', { desde: '2026-09-01', limite: 200 })) as {
+      lancamentos: Array<{
+        conta: { id: string; rotulo: string };
+        data: string;
+        valor: string;
+        descricao: string;
+        categoria: string;
+      }>;
+      completo: boolean;
+    };
+    expect(lista.lancamentos).toHaveLength(26);
+    expect(lista.completo).toBe(true);
+    const chave = chaveDe(lista.lancamentos[0]?.descricao);
+    for (const lancamento of lista.lancamentos) {
+      confereMarcado(lancamento.descricao, chave);
+      expect(lancamento.descricao).toContain(`origem="extrato" id="${lancamento.conta.id}"`);
+      expect(lancamento.conta.id).toMatch(/^[0-9a-f]{12}$/);
+      expect(lancamento.valor).toMatch(/^-?\d+,\d{2}$/);
+    }
+    const suspeito = lista.lancamentos.find((item) => item.conta.rotulo === 'Poupança final 8765');
+    expect(suspeito).toMatchObject({ valor: '10,00', categoria: 'transferências' });
+    expect(suspeito?.descricao).toContain('‹‹‹FIM_TERCEIROS›››');
+    expect(suspeito?.descricao).not.toContain('[31m');
+  });
+
+  it('resumo_financeiro resume o mês, com a fatura e os investimentos à parte', async () => {
+    const resumo = (await dados('resumo_financeiro', { mes: '2026-10' })) as {
+      contas: Array<{ rotulo: string; saldo: string | null; data_do_saldo: string | null }>;
+    };
+    expect(resumo).toMatchObject({
+      mes: '2026-10',
+      entradas: '249,90',
+      saidas: '1317,80',
+      pagamento_da_fatura: { entradas: '1450,00', saidas: '1450,00' },
+      investimentos: { entradas: '300,00', saidas: '1000,00' },
+      lancamentos: 21,
+      avisos: [],
+    });
+    expect(resumo.contas.map((conta) => [conta.rotulo, conta.saldo, conta.data_do_saldo])).toEqual([
+      ['Cartão final 2222', '-513,80', '2026-11-03'],
+      ['Conta corrente final 3456', '3378,95', '2026-11-03'],
+      ['Poupança final 8765', '10,00', '2026-11-03'],
+    ]);
+  });
+
+  it('as entradas inválidas dão erro claro, sem stack trace', async () => {
+    const falhas = [
+      await chamar('resumo_financeiro', { mes: '2026-13' }),
+      await chamar('listar_lancamentos', { desde: '2026-10-08', ate: '2026-10-07' }),
+      await chamar('listar_lancamentos', { conta: 'nao-existe' }),
+      await chamar('listar_lancamentos', { limite: 0 }),
+      await chamar('listar_lancamentos', { limite: 201 }),
+    ];
+    for (const falha of falhas) {
+      expect(falha.erro).toBe(true);
+      expect(falha.texto).not.toMatch(/\n\s+at /);
+    }
+    expect(falhas[0]?.texto).toContain('mes');
+    expect(falhas[1]?.texto).toContain('O desde vem depois do ate.');
+    expect(falhas[2]?.texto).toContain('Conta não encontrada.');
+    expect(falhas[3]?.texto).toContain('limite');
+    expect(falhas[4]?.texto).toContain('limite');
   });
 });
 

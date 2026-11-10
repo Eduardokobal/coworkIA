@@ -1,11 +1,13 @@
 import { DateTime } from 'luxon';
 import type { Conversa, Evento, MensagemWhatsapp } from './dominio.js';
+import type { AvisoDoExtrato, FonteFinancas } from './fontes/financas/fonte-financas.js';
 import type { Fontes } from './fontes/tipos.js';
 import {
   type AvisoDaPasta,
   ErroDaPasta,
   type FonteWhatsapp,
 } from './fontes/whatsapp/fonte-whatsapp.js';
+import { categoriaDe, lerCategoriasDoUsuario, mesmaCategoria } from './regras/categorias.js';
 import { type Apontamento, criticar, type Rascunho, ROTEIRO_DA_CRITICA } from './regras/critica.js';
 import {
   bloqueiaAgenda,
@@ -15,6 +17,11 @@ import {
   intervaloDoEvento,
   verificarDisponibilidade,
 } from './regras/disponibilidade.js';
+import {
+  type LancamentoClassificado,
+  type ResumoDoMes,
+  resumirMes,
+} from './regras/resumo-financeiro.js';
 import {
   agrupar,
   type ContextoTriagem,
@@ -37,6 +44,7 @@ import {
   type Periodo,
   type Relogio,
 } from './tempo.js';
+import { palavras, semAcentos } from './texto/normalizar.js';
 
 export const LIMITE_DA_TRIAGEM = 200;
 export const LIMITE_PADRAO_DA_LISTA = 20;
@@ -47,12 +55,23 @@ export const SEM_PASTA_DO_WHATSAPP =
   'Defina COWORKIA_WHATSAPP_PASTA com a pasta das conversas exportadas.';
 export const SEM_EU_DO_WHATSAPP =
   'Defina COWORKIA_WHATSAPP_EU com o nome que aparece nas suas mensagens exportadas.';
+/** Versão 2, parte 2, 7.11 */
+export const LIMITE_PADRAO_DE_LANCAMENTOS = 50;
+/** Versão 2, parte 2, E1: o que falta configurar no modo google. */
+export const SEM_PASTA_DAS_FINANCAS =
+  'Defina COWORKIA_FINANCAS_PASTA com a pasta dos extratos OFX.';
 
 /** Versão 2: a fonte das conversas, os nomes do usuário (V1) e os contatos importantes (W3). */
 export interface DependenciasWhatsapp {
   fonte: FonteWhatsapp;
   eu: readonly string[];
   importantes: readonly string[];
+}
+
+/** Versão 2, parte 2: a fonte dos extratos e a COWORKIA_FINANCAS_CATEGORIAS, como veio (G3). */
+export interface DependenciasFinancas {
+  fonte: FonteFinancas;
+  categorias: string;
 }
 
 export interface Dependencias {
@@ -62,6 +81,8 @@ export interface Dependencias {
   importantes: readonly string[];
   /** Versão 2: as conversas, ou a mensagem que diz o que falta configurar (F1 e V2). */
   whatsapp?: DependenciasWhatsapp | string | undefined;
+  /** Versão 2, parte 2: os extratos, ou a mensagem que diz o que falta configurar (E1). */
+  financas?: DependenciasFinancas | string | undefined;
 }
 
 export interface EntradaListarEmails {
@@ -316,4 +337,106 @@ export async function triagemWhatsapp(
   };
   const { conversas } = await whatsapp.fonte.conversas();
   return { grupos: triarConversas(conversas, contexto, inicio), analisadas: conversas.length };
+}
+
+export interface EntradaListarLancamentos {
+  desde?: string | undefined;
+  ate?: string | undefined;
+  conta?: string | undefined;
+  categoria?: string | undefined;
+  busca?: string | undefined;
+  limite?: number | undefined;
+}
+
+export interface ListaDeLancamentos {
+  lancamentos: LancamentoClassificado[];
+  completo: boolean;
+  avisos: AvisoDoExtrato[];
+}
+
+export interface ResumoFinanceiro extends ResumoDoMes {
+  avisos: AvisoDoExtrato[];
+}
+
+function financasDe(dep: Dependencias): DependenciasFinancas {
+  if (typeof dep.financas !== 'object') {
+    throw new Error(typeof dep.financas === 'string' ? dep.financas : SEM_PASTA_DAS_FINANCAS);
+  }
+  return dep.financas;
+}
+
+/** Versão 2, parte 2, G1 a G3: os extratos, com a categoria e os avisos da variável. */
+async function extratosClassificados(dep: Dependencias) {
+  const financas = financasDe(dep);
+  const { contas, lancamentos, avisos } = await financas.fonte.extratos();
+  const { categorias, ignoradas } = lerCategoriasDoUsuario(financas.categorias);
+  const classificados: LancamentoClassificado[] = lancamentos.map((lancamento) => ({
+    ...lancamento,
+    categoria: categoriaDe(
+      {
+        descricao: lancamento.descricao,
+        centavos: lancamento.centavos,
+        tipo: lancamento.conta.tipo,
+      },
+      categorias,
+    ),
+  }));
+  const daVariavel = ignoradas.map((numero) => ({
+    nome: null,
+    texto: `a categoria ${numero} da COWORKIA_FINANCAS_CATEGORIAS foi ignorada.`,
+  }));
+  return { contas, lancamentos: classificados, avisos: [...avisos, ...daVariavel] };
+}
+
+/** Versão 2, parte 2, 7.11: a data no fuso; a hora, se vier, só serve para achar a data. */
+function dataNoFuso(texto: string, fuso: string): string {
+  return lerDataHora(texto, fuso).toFormat('yyyy-MM-dd');
+}
+
+/** Versão 2, parte 2, 7.11: N1, N2 e N4, sem a N3, com as palavras ligadas por um espaço. */
+function paraBusca(texto: string): string {
+  return palavras(semAcentos(texto.toLowerCase())).join(' ');
+}
+
+/** Versão 2, parte 2, 7.11: do mais novo para o mais velho, com as duas pontas incluídas. */
+export async function listarLancamentos(
+  dep: Dependencias,
+  entrada: EntradaListarLancamentos,
+): Promise<ListaDeLancamentos> {
+  const { contas, lancamentos, avisos } = await extratosClassificados(dep);
+  if (entrada.conta !== undefined && !contas.some((conta) => conta.id === entrada.conta)) {
+    throw new Error('Conta não encontrada.');
+  }
+  const ate = entrada.ate === undefined ? null : dataNoFuso(entrada.ate, dep.fuso);
+  const base = ate === null ? dep.relogio() : lerDataHora(ate, dep.fuso);
+  const desde =
+    entrada.desde === undefined
+      ? base.minus({ days: 30 }).toFormat('yyyy-MM-dd')
+      : dataNoFuso(entrada.desde, dep.fuso);
+  if (ate !== null && desde > ate) {
+    throw new Error('O desde vem depois do ate.');
+  }
+  const busca = entrada.busca === undefined ? '' : paraBusca(entrada.busca);
+  const filtrados = lancamentos.filter(
+    (lancamento) =>
+      lancamento.data >= desde &&
+      (ate === null || lancamento.data <= ate) &&
+      (entrada.conta === undefined || lancamento.conta.id === entrada.conta) &&
+      (entrada.categoria === undefined ||
+        mesmaCategoria(lancamento.categoria, entrada.categoria)) &&
+      (busca === '' || paraBusca(lancamento.descricao).includes(busca)),
+  );
+  // A ordenação é estável: no mesmo dia, fica a ordem dos arquivos e, no arquivo, a de leitura.
+  const ordenados = [...filtrados].sort((a, b) =>
+    a.data === b.data ? 0 : a.data < b.data ? 1 : -1,
+  );
+  const limite = entrada.limite ?? LIMITE_PADRAO_DE_LANCAMENTOS;
+  return { lancamentos: ordenados.slice(0, limite), completo: ordenados.length <= limite, avisos };
+}
+
+/** Versão 2, parte 2, 7.12: o resumo de um mês, o de hoje por padrão. */
+export async function resumoFinanceiro(dep: Dependencias, mes?: string): Promise<ResumoFinanceiro> {
+  const { contas, lancamentos, avisos } = await extratosClassificados(dep);
+  const doMes = mes ?? dep.relogio().toFormat('yyyy-MM');
+  return { ...resumirMes(doMes, lancamentos, contas), avisos };
 }

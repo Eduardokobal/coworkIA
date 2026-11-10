@@ -1,7 +1,14 @@
+import { randomBytes } from 'node:crypto';
 import type { DateTime } from 'luxon';
 import type { Config } from './config.js';
-import { carregarDadosDemo, EU_DA_DEMONSTRACAO, fonteWhatsappDemo } from './fontes/demo/dados.js';
+import {
+  carregarDadosDemo,
+  EU_DA_DEMONSTRACAO,
+  fonteFinancasDemo,
+  fonteWhatsappDemo,
+} from './fontes/demo/dados.js';
 import { criarFontesDemo } from './fontes/demo/fonte-demo.js';
+import { criarFonteFinancas } from './fontes/financas/fonte-financas.js';
 import { type Buscar, criarFontesGoogle } from './fontes/google/fonte-google.js';
 import type { Fontes } from './fontes/tipos.js';
 import { criarFonteWhatsapp } from './fontes/whatsapp/fonte-whatsapp.js';
@@ -9,8 +16,10 @@ import type { Cofre } from './login/cofre.js';
 import { type CredenciaisDoCliente, credenciaisDoEnv } from './login/credenciais.js';
 import {
   type Dependencias,
+  type DependenciasFinancas,
   type DependenciasWhatsapp,
   SEM_EU_DO_WHATSAPP,
+  SEM_PASTA_DAS_FINANCAS,
   SEM_PASTA_DO_WHATSAPP,
 } from './servico.js';
 import { relogioDoSistema, relogioFixo } from './tempo.js';
@@ -63,6 +72,28 @@ function whatsappDaConfig(
   };
 }
 
+/** Versão 2, parte 2, E1 e G3: no modo demo, os extratos da demonstração; no google, a pasta. */
+function financasDaConfig(
+  config: Config,
+  pastaDemo: string,
+  agora: DateTime,
+  segredo: Uint8Array,
+): DependenciasFinancas | string {
+  if (config.modo === 'demo') {
+    return {
+      fonte: fonteFinancasDemo(pastaDemo, agora, segredo),
+      categorias: config.financasCategorias,
+    };
+  }
+  if (config.financasPasta === null) {
+    return SEM_PASTA_DAS_FINANCAS;
+  }
+  return {
+    fonte: criarFonteFinancas({ pasta: config.financasPasta, segredo }),
+    categorias: config.financasCategorias,
+  };
+}
+
 /** RQ2, AD1 e AD9: liga a configuração ao relógio e às fontes, conforme o modo. */
 export function criarDependencias(
   config: Config,
@@ -81,5 +112,7 @@ export function criarDependencias(
     fuso: config.fuso,
     importantes: config.importantes,
     whatsapp: whatsappDaConfig(config, pastaDemo, relogio()),
+    // F-D7 e O10: a chave secreta do id da conta nasce a cada servidor, e só fica na memória.
+    financas: financasDaConfig(config, pastaDemo, relogio(), randomBytes(32)),
   };
 }

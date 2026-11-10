@@ -68,3 +68,23 @@ export interface Conversa {
   /** L3: as linhas que não continuam nenhuma mensagem. */
   linhasDescartadas: number;
 }
+
+/** Versão 2, parte 2, O2: a conta corrente (STMTRS) ou o cartão de crédito (CCSTMTRS). */
+export type TipoDeConta = 'conta' | 'cartao';
+
+/** Versão 2, parte 2, seção 5: um lançamento de um extrato OFX. */
+export interface Lancamento {
+  /** O6: a data do banco, como AAAA-MM-DD, sem converter o fuso. */
+  data: string;
+  /** O5, O8 e RF4: em centavos; negativo é saída, e positivo, entrada. */
+  centavos: number;
+  /** O7: "NAME / MEMO", um dos dois ou "(sem descrição)". */
+  descricao: string;
+}
+
+/** Versão 2, parte 2, O9: o saldo de um extrato. */
+export interface Saldo {
+  centavos: number;
+  /** AAAA-MM-DD, como na O6. */
+  data: string;
+}
