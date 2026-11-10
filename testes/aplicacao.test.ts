@@ -1,11 +1,22 @@
+import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { criarDependencias, type RecursosDoGoogle } from '../src/aplicacao.js';
 import type { Buscar } from '../src/fontes/google/fonte-google.js';
 import type { CredenciaisDoCliente } from '../src/login/credenciais.js';
-import { SEM_EU_DO_WHATSAPP, SEM_PASTA_DO_WHATSAPP } from '../src/servico.js';
+import {
+  SEM_EU_DO_WHATSAPP,
+  SEM_PASTA_DAS_FINANCAS,
+  SEM_PASTA_DO_WHATSAPP,
+} from '../src/servico.js';
 import { paraIso } from '../src/tempo.js';
+
+// O randomBytes passa a ser observado, para o teste saber o tamanho da chave secreta (O10).
+vi.mock('node:crypto', async (original) => {
+  const crypto = await original<typeof import('node:crypto')>();
+  return { ...crypto, randomBytes: vi.fn(crypto.randomBytes) };
+});
 
 const PASTA = fileURLToPath(new URL('../dados-demo', import.meta.url));
 const BASE = {
@@ -15,6 +26,8 @@ const BASE = {
   whatsappPasta: null,
   whatsappEu: [],
   whatsappImportantes: [],
+  financasPasta: null,
+  financasCategorias: '',
 };
 const ENV =
   'COWORKIA_GOOGLE_CLIENT_ID=cliente-de-teste\nCOWORKIA_GOOGLE_CLIENT_SECRET=segredo-de-teste\n';
@@ -124,5 +137,55 @@ describe('o WhatsApp nas dependências (versão 2, F1 e V2)', () => {
     expect(whatsapp).toMatchObject({ eu: ['Eu'], importantes: ['Marta Souza'] });
     const { conversas } = await whatsapp.fonte.conversas();
     expect(conversas.every((conversa) => conversa.formato === null)).toBe(true);
+  });
+});
+
+describe('as finanças nas dependências (versão 2, parte 2, E1, G3 e F-D7)', () => {
+  it('no modo demo, usa os extratos da demonstração e a variável das categorias', async () => {
+    const config = { ...BASE, modo: 'demo' as const, financasCategorias: 'academia=SMART FIT' };
+    const financas = criarDependencias(config, PASTA, GOOGLE_PROIBIDO).financas;
+    if (typeof financas !== 'object') {
+      throw new Error('o modo demo ficou sem as finanças');
+    }
+    expect(financas.categorias).toBe('academia=SMART FIT');
+    expect((await financas.fonte.extratos()).contas).toHaveLength(3);
+  });
+
+  it('no modo google, sem a pasta, diz o que falta', () => {
+    const { recursos } = googleDeMentira(ENV, 'rt-de-teste');
+    const google = { ...BASE, modo: 'google' as const };
+    expect(criarDependencias(google, PASTA, recursos).financas).toBe(SEM_PASTA_DAS_FINANCAS);
+  });
+
+  it('no modo google, lê a pasta configurada, sem trocar os modelos da demonstração', async () => {
+    const { recursos } = googleDeMentira(ENV, 'rt-de-teste');
+    const config = { ...BASE, modo: 'google' as const, financasPasta: join(PASTA, 'financas') };
+    const financas = criarDependencias(config, PASTA, recursos).financas;
+    if (typeof financas !== 'object') {
+      throw new Error('o modo google ficou sem as finanças');
+    }
+    const { lancamentos, avisos } = await financas.fonte.extratos();
+    expect(lancamentos).toEqual([]);
+    expect(avisos.length).toBeGreaterThan(0);
+  });
+
+  it('cada servidor tem a sua chave secreta, e o id da mesma conta muda (F-D7)', async () => {
+    const config = { ...BASE, modo: 'demo' as const };
+    const ids = async () => {
+      const financas = criarDependencias(config, PASTA, GOOGLE_PROIBIDO).financas;
+      if (typeof financas !== 'object') {
+        throw new Error('o modo demo ficou sem as finanças');
+      }
+      return (await financas.fonte.extratos()).contas.map((conta) => conta.id);
+    };
+    const [primeiro, segundo] = [await ids(), await ids()];
+    expect(primeiro).toHaveLength(3);
+    expect(primeiro.some((id, indice) => id === segundo[indice])).toBe(false);
+  });
+
+  it('a chave secreta tem 32 bytes (O10)', () => {
+    vi.mocked(randomBytes).mockClear();
+    criarDependencias({ ...BASE, modo: 'demo' as const }, PASTA, GOOGLE_PROIBIDO);
+    expect(vi.mocked(randomBytes).mock.calls).toEqual([[32]]);
   });
 });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { lerConfig } from '../src/config.js';
 
-describe('lerConfig (seção 8, AD1 e versão 2, F1, V1 e W3)', () => {
+describe('lerConfig (seção 8, AD1, versão 2, F1, V1 e W3, e parte 2, E1 e G3)', () => {
   it('sem variáveis, usa o modo demo, o fuso de São Paulo, nenhum importante e o relógio do sistema', () => {
     expect(lerConfig({})).toEqual({
       modo: 'demo',
@@ -11,10 +11,12 @@ describe('lerConfig (seção 8, AD1 e versão 2, F1, V1 e W3)', () => {
       whatsappPasta: null,
       whatsappEu: [],
       whatsappImportantes: [],
+      financasPasta: null,
+      financasCategorias: '',
     });
   });
 
-  it('lê o modo, o fuso, os importantes, o agora e as variáveis do WhatsApp', () => {
+  it('lê o modo, o fuso, os importantes, o agora e as variáveis do WhatsApp e das finanças', () => {
     expect(
       lerConfig({
         COWORKIA_MODO: 'google',
@@ -24,6 +26,8 @@ describe('lerConfig (seção 8, AD1 e versão 2, F1, V1 e W3)', () => {
         COWORKIA_WHATSAPP_PASTA: ' C:/conversas ',
         COWORKIA_WHATSAPP_EU: 'Lúcia Prado, Lúcia',
         COWORKIA_WHATSAPP_IMPORTANTES: 'Marta Souza',
+        COWORKIA_FINANCAS_PASTA: ' C:/extratos ',
+        COWORKIA_FINANCAS_CATEGORIAS: 'academia=SMART FIT; outros=MERCADO PAGO',
       }),
     ).toEqual({
       modo: 'google',
@@ -33,6 +37,8 @@ describe('lerConfig (seção 8, AD1 e versão 2, F1, V1 e W3)', () => {
       whatsappPasta: 'C:/conversas',
       whatsappEu: ['Lúcia Prado', 'Lúcia'],
       whatsappImportantes: ['Marta Souza'],
+      financasPasta: 'C:/extratos',
+      financasCategorias: 'academia=SMART FIT; outros=MERCADO PAGO',
     });
   });
 
