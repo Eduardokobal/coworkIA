@@ -1,13 +1,17 @@
 import type { Categoria, Evento, MensagemWhatsapp, Pessoa } from '../dominio.js';
+import type { AvisoDoExtrato } from '../fontes/financas/fonte-financas.js';
 import { bloqueiaAgenda, ehDiaInteiro, intervaloDoEvento } from '../regras/disponibilidade.js';
+import type { Totais } from '../regras/resumo-financeiro.js';
 import type { EmailClassificado } from '../regras/triagem.js';
 import type { CategoriaWhatsapp, ConversaClassificada } from '../regras/triagem-whatsapp.js';
 import type {
   ConversaLida,
   ListaDeConversas,
+  ListaDeLancamentos,
   ResultadoTriagem,
   ResultadoTriagemWhatsapp,
   ResumoDoDia,
+  ResumoFinanceiro,
 } from '../servico.js';
 import { lerDataHora, paraIso } from '../tempo.js';
 import { type Campo, marcar, type Origem, prepararTexto } from './terceiros.js';
@@ -346,4 +350,64 @@ function linhasDoWhatsapp(whatsapp: ResultadoTriagemWhatsapp | string): string[]
   listar('Urgentes no WhatsApp:', whatsapp.grupos.urgente);
   listar('Pedem resposta no WhatsApp:', whatsapp.grupos.pede_resposta);
   return linhas;
+}
+
+/** Versão 2, parte 2, 7.11: reais, com o sinal, sem separador de milhar, com vírgula e 2 casas. */
+export function emReais(centavos: number | bigint): string {
+  const valor = BigInt(centavos);
+  const absoluto = valor < 0n ? -valor : valor;
+  const resto = String(absoluto % 100n).padStart(2, '0');
+  return `${valor < 0n ? '-' : ''}${absoluto / 100n},${resto}`;
+}
+
+/** Versão 2, parte 2, E4: o nome do arquivo passa pela S2, com o id "pasta". */
+function avisosDoExtrato(avisos: readonly AvisoDoExtrato[], saida: Saida) {
+  return avisos.map((aviso) => ({
+    arquivo: aviso.nome === null ? null : campo(aviso.nome, 'nome', 'extrato', 'pasta', saida),
+    aviso: aviso.texto,
+  }));
+}
+
+/** Versão 2, parte 2, 7.11: a descrição como um assunto, marcada com o id da conta. */
+export function lancamentosParaSaida(lista: ListaDeLancamentos, saida: Saida) {
+  return {
+    lancamentos: lista.lancamentos.map((lancamento) => ({
+      conta: { id: lancamento.conta.id, rotulo: lancamento.conta.rotulo },
+      data: lancamento.data,
+      valor: emReais(lancamento.centavos),
+      descricao: campo(lancamento.descricao, 'assunto', 'extrato', lancamento.conta.id, saida),
+      categoria: lancamento.categoria,
+    })),
+    completo: lista.completo,
+    avisos: avisosDoExtrato(lista.avisos, saida),
+  };
+}
+
+function totaisEmReais(totais: Totais) {
+  return { entradas: emReais(totais.entradas), saidas: emReais(totais.saidas) };
+}
+
+/** Versão 2, parte 2, 7.12: as saídas sem o sinal, e o saldo com o sinal. */
+export function resumoFinanceiroParaSaida(resumo: ResumoFinanceiro, saida: Saida) {
+  return {
+    mes: resumo.mes,
+    entradas: emReais(resumo.entradas),
+    saidas: emReais(resumo.saidas),
+    categorias: resumo.categorias.map((item) => ({
+      categoria: item.categoria,
+      ...totaisEmReais(item),
+    })),
+    pagamento_da_fatura: totaisEmReais(resumo.pagamentoDaFatura),
+    investimentos: totaisEmReais(resumo.investimentos),
+    contas: resumo.contas.map((item) => ({
+      id: item.conta.id,
+      rotulo: item.conta.rotulo,
+      ...totaisEmReais(item),
+      saldo: item.conta.saldo === null ? null : emReais(item.conta.saldo.centavos),
+      data_do_saldo: item.conta.saldo?.data ?? null,
+      dados_ate: item.conta.dadosAte,
+    })),
+    lancamentos: resumo.lancamentos,
+    avisos: avisosDoExtrato(resumo.avisos, saida),
+  };
 }

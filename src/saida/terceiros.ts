@@ -15,7 +15,7 @@ export const LIMITES = {
 
 export type Campo = keyof typeof LIMITES;
 
-export type Origem = 'email' | 'agenda' | 'whatsapp';
+export type Origem = 'email' | 'agenda' | 'whatsapp' | 'extrato';
 
 export interface TextoPreparado {
   texto: string;
