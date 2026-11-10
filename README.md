@@ -1,6 +1,6 @@
 # coworkIA
 
-Um projeto pessoal. Um servidor MCP que roda no seu PC e dá à sua IA (Claude, Codex, VS Code) ferramentas para ler e fazer a triagem dos e-mails e das conversas exportadas do WhatsApp, consultar a agenda, criticar um rascunho e montar o resumo do dia. A versão 1 está descrita em [docs/specs/2026-11-04-versao-1.md](docs/specs/2026-11-04-versao-1.md), com os adendos dos planos [B](docs/specs/2026-11-05-versao-1-adendo.md) e [C](docs/specs/2026-11-05-versao-1-adendo-c.md) e o do [ajuste dos anotados](docs/specs/2026-11-06-versao-1-adendo-anotados.md). A versão 2 começa pelo WhatsApp exportado, descrito em [docs/specs/2026-11-06-versao-2-whatsapp.md](docs/specs/2026-11-06-versao-2-whatsapp.md). Ela roda no modo de demonstração, com uma caixa de e-mail e uma agenda inventadas, ou com o seu Gmail e a sua Agenda do Google, só para leitura.
+Um projeto pessoal. Um servidor MCP que roda no seu PC e dá à sua IA (Claude, Codex, VS Code) ferramentas para ler e fazer a triagem dos e-mails e das conversas exportadas do WhatsApp, ler e resumir os extratos do banco em OFX, consultar a agenda, criticar um rascunho e montar o resumo do dia. A versão 1 está descrita em [docs/specs/2026-11-04-versao-1.md](docs/specs/2026-11-04-versao-1.md), com os adendos dos planos [B](docs/specs/2026-11-05-versao-1-adendo.md) e [C](docs/specs/2026-11-05-versao-1-adendo-c.md) e o do [ajuste dos anotados](docs/specs/2026-11-06-versao-1-adendo-anotados.md). A versão 2 começa pelo WhatsApp exportado, descrito em [docs/specs/2026-11-06-versao-2-whatsapp.md](docs/specs/2026-11-06-versao-2-whatsapp.md), e segue com as finanças por extrato, descritas em [docs/specs/2026-11-09-versao-2-financas.md](docs/specs/2026-11-09-versao-2-financas.md). Ela roda no modo de demonstração, com uma caixa de e-mail e uma agenda inventadas, ou com o seu Gmail e a sua Agenda do Google, só para leitura.
 
 ## Como usar
 
@@ -18,6 +18,8 @@ Precisa do Node.js 24 ou mais novo.
 Mostra o resumo do dia da demonstração: a triagem dos e-mails das últimas 24 horas, a agenda de hoje, os conflitos, o próximo compromisso e a triagem das conversas do WhatsApp.
 
 Na demonstração, o e-mail de `diretoria@example.com` só vira urgente (regra T4) com a variável `COWORKIA_IMPORTANTES=diretoria@example.com`. Sem ela, ele aparece em "pedem resposta". Do mesmo jeito, a conversa da Marta Souza no WhatsApp só vira urgente (regra W3) com `COWORKIA_WHATSAPP_IMPORTANTES="Marta Souza"`.
+
+As finanças não entram no resumo do dia. Na demonstração, elas aparecem nas ferramentas `listar_lancamentos` e `resumo_financeiro`, com uma conta corrente, um cartão, uma poupança e um extrato malicioso.
 
 ### Ligar numa IA
 
@@ -57,7 +59,7 @@ O servidor fala MCP pela entrada e pela saída padrão. Troque `/caminho/para/co
 
   O VS Code ainda aceita o `.vscode/mcp.json`, mas a documentação dele, de 04/11/2026, o marca como antigo ("deprecated") no assistente que adiciona servidores. O outro destino da documentação, o `.mcp.json` na raiz do projeto, usa o formato portátil do Copilot, com a chave `mcpServers`, e o assistente só o oferece com a opção experimental `chat.mcp.workspaceRootConfig.enabled` ligada.
 
-As ferramentas são `listar_emails`, `ler_email`, `triagem_emails`, `listar_eventos`, `verificar_disponibilidade`, `criticar_rascunho`, `resumo_do_dia`, `listar_conversas`, `ler_conversa` e `triagem_whatsapp`, e o prompt é `criticar_rascunho`.
+As ferramentas são `listar_emails`, `ler_email`, `triagem_emails`, `listar_eventos`, `verificar_disponibilidade`, `criticar_rascunho`, `resumo_do_dia`, `listar_conversas`, `ler_conversa`, `triagem_whatsapp`, `listar_lancamentos` e `resumo_financeiro`, e o prompt é `criticar_rascunho`.
 
 ### Variáveis de ambiente
 
@@ -70,6 +72,8 @@ As ferramentas são `listar_emails`, `ler_email`, `triagem_emails`, `listar_even
 | `COWORKIA_WHATSAPP_PASTA` | A pasta das conversas exportadas do WhatsApp, no modo `google` | nenhuma |
 | `COWORKIA_WHATSAPP_EU` | Os nomes com que você aparece nas suas mensagens exportadas, separados por vírgula | nenhum |
 | `COWORKIA_WHATSAPP_IMPORTANTES` | Os contatos importantes no WhatsApp, como aparecem na exportação | nenhum |
+| `COWORKIA_FINANCAS_PASTA` | A pasta dos extratos OFX, no modo `google` | nenhuma |
+| `COWORKIA_FINANCAS_CATEGORIAS` | As suas categorias, no formato `nome=termo1,termo2;nome2=termo3`; valem antes das do coworkIA | nenhuma |
 
 ### Usar o Gmail e a Agenda de verdade
 
@@ -106,10 +110,29 @@ A triagem olha, em cada conversa, o que chegou depois da sua última resposta, n
 
 O formato da exportação não é publicado pelo WhatsApp. O coworkIA foi feito a partir das variações conhecidas e ainda não foi medido com uma exportação real.
 
+### Ler os extratos do banco
+
+O coworkIA lê os extratos que você baixa do próprio banco, em OFX. Ele não se conecta com o banco nem usa o Open Finance: só lê os arquivos, sem alterar nem mover nada.
+
+1. Baixe o extrato da conta e a fatura do cartão em OFX, pelo aplicativo ou pelo site do banco. O nome da opção muda de banco para banco, como "Exportar", "Salvar extrato" ou "Money/OFX".
+2. Ponha os `.ofx` numa pasta e defina `COWORKIA_FINANCAS_PASTA` com o caminho dela. Extratos que se sobrepõem não repetem os lançamentos: o mesmo dia, valor e descrição em dois arquivos da mesma conta contam uma vez.
+3. Se quiser, defina `COWORKIA_FINANCAS_CATEGORIAS` com as suas categorias, como `mercado=ASSAI,ATACADAO;academia=SMART FIT;outros=MERCADO PAGO`. Elas valem antes das do coworkIA.
+
+As ferramentas mostram a conta só com os 4 últimos dígitos, como "Conta corrente final 3456", ou com "sem número", quando o banco manda um código no lugar do número, e o id dela muda quando o servidor reinicia. O resumo do mês deixa o pagamento da fatura e as aplicações e os resgates de investimento fora das entradas e das saídas, numa linha à parte. As limitações conhecidas:
+
+- só o OFX é lido, e só em real; o CSV fica para depois;
+- a data é a do banco, sem converter o fuso;
+- as categorias são palavras na descrição e erram às vezes, e as suas corrigem;
+- uma transferência entre as suas contas conta como entrada numa e saída na outra;
+- um lançamento cuja data, valor ou descrição mude entre duas exportações conta duas vezes, e dois lançamentos iguais do mesmo dia, cada um num arquivo que não traz o outro, contam uma vez;
+- no modo `google`, ler os extratos também pede o login do Google.
+
+O formato OFX é público, mas cada banco o usa do seu jeito. O coworkIA foi feito a partir da especificação e medido com extratos de exemplo publicados por projetos abertos, mas ainda não com um extrato real.
+
 ## Avisos
 
-- **Dados de terceiros e a LGPD:** o texto dos e-mails, da agenda e das conversas do WhatsApp vai para o provedor da IA que você usa. Num uso profissional, isso envolve dados de clientes e de colegas.
-- **Injeção de instrução:** um e-mail ou uma mensagem pode tentar mandar a IA fazer algo. O coworkIA nunca envia nada e marca o texto de terceiros como dado, mas a IA pode ter outras ferramentas. Use o coworkIA numa IA sem conectores que enviam e-mail ou mensagem, ou com a aprovação de cada chamada de ferramenta ligada.
+- **Dados de terceiros e a LGPD:** o texto dos e-mails, da agenda, das conversas do WhatsApp e dos extratos vai para o provedor da IA que você usa. Num uso profissional, isso envolve dados de clientes e de colegas, e os extratos são dados financeiros.
+- **Injeção de instrução:** um e-mail, uma mensagem ou a descrição de um PIX pode tentar mandar a IA fazer algo. O coworkIA nunca envia nada e marca o texto de terceiros como dado, mas a IA pode ter outras ferramentas. Use o coworkIA numa IA sem conectores que enviam e-mail ou mensagem, ou com a aprovação de cada chamada de ferramenta ligada.
 - **E-mail da empresa:** só entra com a autorização da empresa.
 - **Limitações da triagem:** "Preciso disso até amanhã." não é detectado como prazo, e a citação do Outlook não é reconhecida.
 
