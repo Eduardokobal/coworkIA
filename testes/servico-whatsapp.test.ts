@@ -9,6 +9,7 @@ import {
 } from '../src/fontes/demo/dados.js';
 import { criarFontesDemo } from '../src/fontes/demo/fonte-demo.js';
 import {
+  avisoDeDataImpossivel,
   criarFonteWhatsapp,
   idDoArquivo,
   PASTA_SEM_LEITURA,
@@ -109,6 +110,7 @@ describe('ler_conversa (7.9)', () => {
       formato: 'android',
       mensagens,
       linhasDescartadas: 0,
+      linhasComDataImpossivel: 0,
     };
     const lida = await lerConversa(
       dependencias({
@@ -149,6 +151,40 @@ describe('triagem_whatsapp (7.10)', () => {
     expect(resultado.grupos.informativo.map((item) => item.conversa.nome)).toEqual([
       'Equipe Projeto',
     ]);
+  });
+});
+
+describe('o aviso de data impossível no ler e na triagem (AW5)', () => {
+  /** Duas conversas: a A, com 3 linhas com data impossível, e a B, sem nenhuma. */
+  function comDuas(): Dependencias {
+    const conversa = (id: string, linhasComDataImpossivel: number): Conversa => ({
+      id,
+      nome: id,
+      formato: 'android',
+      mensagens: [],
+      linhasDescartadas: 0,
+      linhasComDataImpossivel,
+    });
+    return dependencias({
+      fonte: {
+        conversas: async () => ({ conversas: [conversa('A', 3), conversa('B', 0)], avisos: [] }),
+      },
+      eu: EU_DA_DEMONSTRACAO,
+      importantes: [],
+    });
+  }
+
+  it('o ler_conversa traz o aviso da conversa, ou nulo sem as linhas', async () => {
+    expect((await lerConversa(comDuas(), { id: 'A' })).aviso).toBe(avisoDeDataImpossivel(3));
+    expect((await lerConversa(comDuas(), { id: 'B' })).aviso).toBeNull();
+    expect((await lerConversa(dep, { id: ANA })).aviso).toBeNull();
+  });
+
+  it('a triagem traz um aviso para cada conversa com as linhas, na ordem dos arquivos', async () => {
+    expect((await triagemWhatsapp(comDuas())).avisos).toEqual([
+      { nome: 'A', texto: avisoDeDataImpossivel(3) },
+    ]);
+    expect((await triagemWhatsapp(dep)).avisos).toEqual([]);
   });
 });
 

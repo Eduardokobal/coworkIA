@@ -28,7 +28,14 @@ function ontem(autor: string, hora: string, texto: string): MensagemWhatsapp {
 }
 
 function conversa(mensagens: MensagemWhatsapp[], id = 'c1'): Conversa {
-  return { id, nome: id, formato: 'android', mensagens, linhasDescartadas: 0 };
+  return {
+    id,
+    nome: id,
+    formato: 'android',
+    mensagens,
+    linhasDescartadas: 0,
+    linhasComDataImpossivel: 0,
+  };
 }
 
 const classificar = (mensagens: MensagemWhatsapp[], contexto = CONTEXTO) =>
