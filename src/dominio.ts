@@ -67,6 +67,8 @@ export interface Conversa {
   mensagens: MensagemWhatsapp[];
   /** L3: as linhas que não continuam nenhuma mensagem. */
   linhasDescartadas: number;
+  /** AW4: as linhas com a forma da L1, mas com uma data que não existe. */
+  linhasComDataImpossivel: number;
 }
 
 /** Versão 2, parte 2, O2: a conta corrente (STMTRS) ou o cartão de crédito (CCSTMTRS). */

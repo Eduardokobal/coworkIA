@@ -24,6 +24,8 @@ export interface LeituraDaExportacao {
   formato: Formato | null;
   mensagens: MensagemWhatsapp[];
   linhasDescartadas: number;
+  /** AW4: as linhas com a forma da L1, mas com uma data ou uma hora que não existe. */
+  linhasComDataImpossivel: number;
 }
 
 interface Inicio {
@@ -32,30 +34,44 @@ interface Inicio {
   resto: string;
 }
 
-/** L1: a linha começa uma mensagem num dos formatos aceitos, com uma data e uma hora que existem. */
-function inicioDaLinha(linha: string, formatos: readonly Formato[], fuso: string): Inicio | null {
+/** AW4: a linha tem a forma da L1, mas a data não existe no calendário. */
+const DATA_IMPOSSIVEL = 'data impossível';
+
+/**
+ * L1: a linha começa uma mensagem num dos formatos aceitos, com uma data e uma hora que existem.
+ * AW4: com a forma de um dos formatos, mas com uma data que não existe, a linha não começa mensagem,
+ * e o leitor a conta. Os minutos ou os segundos acima de 59, com a data certa, não contam, porque
+ * não indicam o formato mês/dia.
+ */
+function inicioDaLinha(
+  linha: string,
+  formatos: readonly Formato[],
+  fuso: string,
+): Inicio | typeof DATA_IMPOSSIVEL | null {
+  let impossivel = false;
   for (const formato of formatos) {
     const achado = FORMATOS[formato].exec(linha);
     if (achado === null) {
       continue;
     }
     const [, dia, mes, ano, hora, minuto, segundo] = achado;
+    const doDia = {
+      year: ano?.length === 2 ? 2000 + Number(ano) : Number(ano),
+      month: Number(mes),
+      day: Number(dia),
+    };
     const data = DateTime.fromObject(
-      {
-        year: ano?.length === 2 ? 2000 + Number(ano) : Number(ano),
-        month: Number(mes),
-        day: Number(dia),
-        hour: Number(hora),
-        minute: Number(minuto),
-        second: Number(segundo ?? 0),
-      },
+      { ...doDia, hour: Number(hora), minute: Number(minuto), second: Number(segundo ?? 0) },
       { zone: fuso },
     );
     if (data.isValid) {
       return { formato, data, resto: linha.slice(achado[0].length) };
     }
+    if (!DateTime.fromObject(doDia, { zone: fuso }).isValid) {
+      impossivel = true;
+    }
   }
-  return null;
+  return impossivel ? DATA_IMPOSSIVEL : null;
 }
 
 /** L5: o texto inteiro da mensagem, já com as continuações da L3, serve para as regras. */
@@ -75,9 +91,13 @@ export function lerExportacao(conteudo: string, fuso: string): LeituraDaExportac
   let formato: Formato | null = null;
   const lidas: Array<Omit<MensagemWhatsapp, 'temTexto'>> = [];
   let linhasDescartadas = 0;
+  let linhasComDataImpossivel = 0;
   for (const linha of linhas) {
     const inicio = inicioDaLinha(linha, formato === null ? ['android', 'iphone'] : [formato], fuso);
-    if (inicio === null) {
+    if (inicio === DATA_IMPOSSIVEL) {
+      linhasComDataImpossivel += 1;
+    }
+    if (inicio === null || inicio === DATA_IMPOSSIVEL) {
       const anterior = lidas.at(-1);
       if (anterior === undefined) {
         linhasDescartadas += 1;
@@ -102,5 +122,5 @@ export function lerExportacao(conteudo: string, fuso: string): LeituraDaExportac
     ...mensagem,
     temTexto: serveParaAsRegras(mensagem.texto),
   }));
-  return { formato, mensagens, linhasDescartadas };
+  return { formato, mensagens, linhasDescartadas, linhasComDataImpossivel };
 }
