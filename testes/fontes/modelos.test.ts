@@ -42,6 +42,14 @@ describe('resolverModelos (seção 10 e AD2)', () => {
     expect(() => resolverModelos('{{agora-2h:windows}}', agora)).toThrow('modelo desconhecido');
   });
 
+  it('troca o dia pelo formato do OFX (versão 2, parte 2, seção 8)', () => {
+    expect(resolverModelos('<DTPOSTED>{{dia-3:ofx}}120000[-3:BRT]', agora)).toBe(
+      '<DTPOSTED>20261101120000[-3:BRT]',
+    );
+    expect(resolverModelos('{{dia+0:ofx}}', agora)).toBe('20261104');
+    expect(() => resolverModelos('{{dia-3:OFX}}', agora)).toThrow('modelo desconhecido');
+  });
+
   it('recusa um modelo desconhecido', () => {
     expect(() => resolverModelos('{{amanha}}', agora)).toThrow('modelo desconhecido');
   });
