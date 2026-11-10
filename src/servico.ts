@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon';
 import type { Conversa, Evento, MensagemWhatsapp } from './dominio.js';
+import { EmailEAgendaDesligados } from './fontes/desligadas.js';
 import type { AvisoDoExtrato, FonteFinancas } from './fontes/financas/fonte-financas.js';
 import type { Fontes } from './fontes/tipos.js';
 import {
@@ -108,6 +109,11 @@ export interface ResultadoCritica {
 
 export interface ResumoDoDia {
   hoje: DateTime;
+  /**
+   * MA4: no modo arquivos, o aviso no lugar do e-mail e da agenda; nos outros, nulo. Com o aviso,
+   * a triagem e a agenda ficam vazias e não saem.
+   */
+  emailEAgenda: string | null;
   triagem: ResultadoTriagem;
   eventosDeHoje: Evento[];
   conflitos: Array<[Evento, Evento]>;
@@ -232,8 +238,30 @@ export function criticarRascunho(rascunho: Rascunho): ResultadoCritica {
 /** 7.7: o próximo compromisso é o primeiro de hoje com hora, a partir de agora, que ocupa a agenda. */
 export async function resumoDoDia(dep: Dependencias): Promise<ResumoDoDia> {
   const hoje = dep.relogio();
-  const triagemDoDia = await triagem(dep);
-  const eventosDeHoje = await listarEventos(dep, 'hoje');
+  let triagemDoDia: ResultadoTriagem;
+  let eventosDeHoje: Evento[];
+  try {
+    triagemDoDia = await triagem(dep);
+    eventosDeHoje = await listarEventos(dep, 'hoje');
+  } catch (erro) {
+    // MA4: no modo arquivos, o aviso fica no lugar do e-mail e da agenda, e o WhatsApp sai como sempre.
+    if (erro instanceof EmailEAgendaDesligados) {
+      return {
+        hoje,
+        emailEAgenda: erro.message,
+        triagem: {
+          grupos: { urgente: [], pede_resposta: [], informativo: [], propaganda: [] },
+          analisados: 0,
+          completo: true,
+        },
+        eventosDeHoje: [],
+        conflitos: [],
+        proximoCompromisso: null,
+        whatsapp: await secaoDoWhatsapp(dep),
+      };
+    }
+    throw erro;
+  }
   const inicioDe = (evento: Evento) => intervaloDoEvento(evento, dep.fuso).inicio.toMillis();
   const futuros = eventosDeHoje.filter(
     (evento) =>
@@ -245,6 +273,7 @@ export async function resumoDoDia(dep: Dependencias): Promise<ResumoDoDia> {
   );
   return {
     hoje,
+    emailEAgenda: null,
     triagem: triagemDoDia,
     eventosDeHoje,
     conflitos: conflitosEntre(eventosDeHoje, dep.fuso),
