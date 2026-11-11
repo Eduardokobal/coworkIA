@@ -92,6 +92,8 @@ No modo google, o coworkIA lê só a caixa de entrada, e no máximo 200 e-mails 
 
 Com o app em "Teste", o Google faz o login valer 7 dias; depois disso, rode `npm run login-google` de novo. Publicar o app tira esse limite, mas o Google pode pedir uma verificação para as permissões do Gmail, e isso não foi testado.
 
+O modo google foi testado com os dados de demonstração e com testes automáticos, mas ainda não com uma conta real do Google.
+
 ### Usar só o WhatsApp e os extratos
 
 Se você não quer conectar o Google, o modo `arquivos` lê só as conversas exportadas do WhatsApp e os extratos OFX. Ele não pede o login do Google nem o `.env` e não toca no cofre do sistema.
@@ -119,10 +121,10 @@ A triagem olha, em cada conversa, o que chegou depois da sua última resposta, n
 - a hora com AM ou PM só é lida na exportação do WhatsApp do computador, e os idiomas além do português e a mídia não são lidos;
 - na exportação do WhatsApp do computador, um contato salvo com o nome "Você" conta como você, uma mensagem só com um texto entre < e > conta como mídia, e a linha que imita uma mensagem sua, no meio de uma mensagem de várias linhas, não precisa do seu nome: basta o "Você";
 - num celular configurado no formato mês/dia, como o dos Estados Unidos, com o relógio de 24 horas, as datas saem trocadas, e algumas mensagens se juntam à anterior. As ferramentas do WhatsApp e o resumo do dia avisam quando acham uma data que não existe, como o mês 13. Um arquivo em que todos os dias vão até 12 não dá para distinguir e sai sem aviso;
-- a citação pelo número de telefone não é reconhecida, e um aviso do WhatsApp com ": " no meio pode virar uma mensagem;
+- a citação pelo número de telefone e a citação ao grupo todo não são reconhecidas, porque só contam os nomes da `COWORKIA_WHATSAPP_EU`, e um aviso do WhatsApp com ": " no meio pode virar uma mensagem;
 - um grupo em que só uma outra pessoa falou conta como conversa individual, e um contato que muda de nome no meio da conversa faz ela contar como grupo.
 
-O formato da exportação não é publicado pelo WhatsApp. O coworkIA foi feito a partir das variações conhecidas e medido com exportações de exemplo publicadas por projetos abertos e com uma exportação real do WhatsApp do computador. As exportações do celular ainda não foram medidas com uma exportação real.
+O formato da exportação não é publicado pelo WhatsApp. O coworkIA foi feito a partir das variações conhecidas e medido com exportações de exemplo publicadas por projetos abertos e com exportações reais do WhatsApp do computador e de um celular Android. Numa exportação do Android, a mensagem que outra pessoa apagou para todos não apareceu. A exportação do iPhone e a citação com o @ do seu nome ainda não foram medidas com uma exportação real.
 
 ### Ler os extratos do banco
 
