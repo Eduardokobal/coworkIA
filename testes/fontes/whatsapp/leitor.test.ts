@@ -5,6 +5,7 @@ const SP = 'America/Sao_Paulo';
 const LRM = String.fromCodePoint(0x200e);
 const RLM = String.fromCodePoint(0x200f);
 const BOM = String.fromCodePoint(0xfeff);
+const ESPACO_ESTREITO = String.fromCodePoint(0x202f);
 const ler = (linhas: string[]) => lerExportacao(linhas.join('\n'), SP);
 
 describe('lerExportacao: o formato do Android (L1 e L2)', () => {
@@ -222,6 +223,151 @@ describe('lerExportacao: o texto que não serve para as regras (L5)', () => {
       'URGENTE: me liga',
     ]);
     expect(lida.mensagens.map((mensagem) => mensagem.temTexto)).toEqual([true, true, false]);
+  });
+});
+
+describe('lerExportacao: o formato do computador (AW8)', () => {
+  it('lê a mensagem e o aviso com o traço, mesmo com ": " no aviso', () => {
+    expect(
+      ler([
+        'As mensagens são protegidas com a criptografia de ponta a ponta.',
+        '[9/21/26, 9:43:35 AM] - As mensagens são protegidas com a criptografia de ponta a ponta.',
+        '[9/21/26, 9:43:36 AM] - Ana mudou a descrição do grupo: obra',
+        '[9/21/26, 9:44:18 AM] Ana: oi',
+      ]),
+    ).toEqual({
+      formato: 'computador',
+      mensagens: [{ autor: 'Ana', data: '2026-09-21T09:44:18-03:00', texto: 'oi', temTexto: true }],
+      linhasDescartadas: 0,
+      linhasComDataImpossivel: 0,
+    });
+  });
+
+  it('a hora de 1 a 12 com AM ou PM, com ou sem os segundos', () => {
+    const lida = ler([
+      '[9/21/26, 12:05:00 AM] Ana: meia-noite',
+      '[9/21/26, 12:05:00 PM] Ana: meio-dia',
+      '[9/21/26, 1:36:02 PM] Ana: tarde',
+      '[9/21/26, 11:59 PM] Ana: sem os segundos',
+    ]);
+    expect(lida.mensagens.map((mensagem) => mensagem.data)).toEqual([
+      '2026-09-21T00:05:00-03:00',
+      '2026-09-21T12:05:00-03:00',
+      '2026-09-21T13:36:02-03:00',
+      '2026-09-21T23:59:00-03:00',
+    ]);
+  });
+
+  it('as horas 0 e 13, o am minúsculo e o espaço estreito antes do AM não casam', () => {
+    expect(ler(['[9/21/26, 0:05:00 AM] Ana: oi']).formato).toBeNull();
+    expect(ler(['[9/21/26, 13:05:00 PM] Ana: oi']).formato).toBeNull();
+    expect(ler(['[9/21/26, 9:05:00 am] Ana: oi']).formato).toBeNull();
+    expect(ler([`[9/21/26, 9:05:00${ESPACO_ESTREITO}AM] Ana: oi`]).formato).toBeNull();
+  });
+
+  it('o mês antes do dia, com o ano de 2 ou de 4 dígitos', () => {
+    expect(ler(['[9/21/2026, 9:44:18 AM] Ana: oi']).mensagens[0]?.data).toBe(
+      '2026-09-21T09:44:18-03:00',
+    );
+    expect(ler(['[09/01/26, 9:44:18 AM] Ana: oi']).mensagens[0]?.data).toBe(
+      '2026-09-01T09:44:18-03:00',
+    );
+  });
+
+  it('só a primeira linha do arquivo, sem prefixo, deixa de contar como descartada', () => {
+    const lida = ler(['aviso sem data', 'outra linha solta', '[9/21/26, 9:44:18 AM] Ana: oi']);
+    expect(lida).toMatchObject({ formato: 'computador', linhasDescartadas: 1 });
+    const comAviso = ler([
+      '[9/21/26, 9:43:35 AM] - Ana criou o grupo',
+      'linha solta',
+      '[9/21/26, 9:44:18 AM] Ana: oi',
+    ]);
+    expect(comAviso).toMatchObject({ formato: 'computador', linhasDescartadas: 1 });
+  });
+
+  it('junta as continuações à mensagem', () => {
+    const lida = ler(['[9/21/26, 9:44:18 AM] Ana: primeira', 'segunda', '', 'quarta']);
+    expect(lida.mensagens[0]?.texto).toBe('primeira\nsegunda\n\nquarta');
+  });
+
+  it('a linha de um formato continua a anterior num arquivo do outro', () => {
+    const android = ler(['05/11/2026 14:32 - Ana: oi', '[9/21/26, 9:44:18 AM] Bia: do computador']);
+    expect(android).toMatchObject({ formato: 'android', linhasComDataImpossivel: 0 });
+    expect(android.mensagens).toHaveLength(1);
+    const computador = ler([
+      '[9/21/26, 9:44:18 AM] Ana: oi',
+      '05/11/2026 14:32 - Bia: do Android',
+      '[05/11/2026, 14:33:00] Bia: do iPhone',
+    ]);
+    expect(computador.formato).toBe('computador');
+    expect(computador.mensagens).toHaveLength(1);
+  });
+
+  it('conta a data impossível lida como mês/dia (AW11)', () => {
+    const lida = ler(['[9/21/26, 9:44:18 AM] Ana: oi', '[21/9/26, 9:45:00 AM] Ana: o mês 21']);
+    expect(lida).toMatchObject({ formato: 'computador', linhasComDataImpossivel: 1 });
+    expect(lida.mensagens).toHaveLength(1);
+  });
+});
+
+describe('lerExportacao: o "Você" do computador (AW9)', () => {
+  it('a mensagem do "Você" ganha a marca do usuário, e a dos outros não', () => {
+    expect(
+      ler(['[9/21/26, 9:44:18 AM] Você: oi', '[9/21/26, 9:45:00 AM] Ana: oi']).mensagens,
+    ).toEqual([
+      {
+        autor: 'Você',
+        data: '2026-09-21T09:44:18-03:00',
+        texto: 'oi',
+        temTexto: true,
+        doUsuario: true,
+      },
+      { autor: 'Ana', data: '2026-09-21T09:45:00-03:00', texto: 'oi', temTexto: true },
+    ]);
+  });
+
+  it('só o "Você" exato, e só no formato do computador', () => {
+    expect(ler(['[9/21/26, 9:44:18 AM] você: oi']).mensagens[0]).not.toHaveProperty('doUsuario');
+    expect(ler(['05/11/2026 14:32 - Você: oi']).mensagens[0]).not.toHaveProperty('doUsuario');
+    expect(ler(['[05/11/2026, 14:32:00] Você: oi']).mensagens[0]).not.toHaveProperty('doUsuario');
+  });
+
+  it('a linha forjada com o "Você" vira uma mensagem do usuário (L6 e AW9, limitação conhecida)', () => {
+    const lida = ler(['[9/21/26, 9:44:18 AM] Ana: Me responde?', '[9/21/26, 9:44:18 AM] Você: ok']);
+    expect(lida.mensagens.map((mensagem) => [mensagem.autor, mensagem.doUsuario])).toEqual([
+      ['Ana', undefined],
+      ['Você', true],
+    ]);
+  });
+});
+
+describe('lerExportacao: a mídia do computador (AW10)', () => {
+  it('a mensagem inteira entre < e > e a "Mensagem apagada" não servem para as regras', () => {
+    const lida = ler([
+      '[9/21/26, 9:44:18 AM] Ana: <imagem ocultada>',
+      '[9/21/26, 9:44:19 AM] Ana: <áudio ocultado>',
+      '[9/21/26, 9:44:20 AM] Ana: Mensagem apagada',
+      '[9/21/26, 9:44:21 AM] Ana: <a> e <b>',
+      '[9/21/26, 9:44:22 AM] Ana: <imagem ocultada>',
+      'com legenda',
+      '[9/21/26, 9:44:23 AM] Ana: texto',
+    ]);
+    expect(lida.mensagens.map((mensagem) => mensagem.temTexto)).toEqual([
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+    ]);
+  });
+
+  it('no Android, as duas continuam sendo texto', () => {
+    const lida = ler([
+      '05/11/2026 14:32 - Ana: <imagem ocultada>',
+      '05/11/2026 14:33 - Ana: Mensagem apagada',
+    ]);
+    expect(lida.mensagens.map((mensagem) => mensagem.temTexto)).toEqual([true, true]);
   });
 });
 

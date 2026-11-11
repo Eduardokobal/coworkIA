@@ -7,6 +7,7 @@ import {
   classificarConversa,
   ehDoUsuario,
   ehGrupo,
+  mensagemDoUsuario,
   triarConversas,
 } from '../../src/regras/triagem-whatsapp.js';
 import { lerDataHora } from '../../src/tempo.js';
@@ -25,6 +26,11 @@ function msg(autor: string, hora: string, texto: string, temTexto = true): Mensa
 /** Uma mensagem de ontem, ainda dentro da janela de 24 horas. */
 function ontem(autor: string, hora: string, texto: string): MensagemWhatsapp {
   return { autor, data: `2026-11-04T${hora}:00-03:00`, texto, temTexto: true };
+}
+
+/** AW9: uma mensagem do "Você" de uma exportação do computador, com a marca do leitor. */
+function voce(hora: string, texto: string): MensagemWhatsapp {
+  return { ...msg('Você', hora, texto), doUsuario: true };
 }
 
 function conversa(mensagens: MensagemWhatsapp[], id = 'c1'): Conversa {
@@ -96,6 +102,38 @@ describe('o bloco que espera o usuário (seção 8)', () => {
     expect(
       classificar([msg('Ana', '09:00', 'Pode me ligar?'), msg('Lúcia Prado', '09:01', 'ok')]),
     ).toBeNull();
+  });
+});
+
+describe('o "Você" do computador (AW9)', () => {
+  it('a mensagem com a marca do leitor é do usuário, mesmo fora da lista', () => {
+    expect(mensagemDoUsuario(voce('09:00', 'oi'), EU)).toBe(true);
+    expect(mensagemDoUsuario(msg('Você', '09:00', 'oi'), EU)).toBe(false);
+    expect(mensagemDoUsuario(msg(' lucia ', '09:00', 'oi'), EU)).toBe(true);
+    expect(mensagemDoUsuario(msg('Ana', '09:00', 'oi'), EU)).toBe(false);
+  });
+
+  it('o "Você" fecha o bloco e não conta como outro autor na V3', () => {
+    const mensagens = [
+      msg('Ana', '08:00', 'antes'),
+      voce('08:30', 'respondi'),
+      msg('Ana', '09:00', 'depois'),
+    ];
+    expect(blocoEsperando(conversa(mensagens), EU, desde, SP).map((m) => m.texto)).toEqual([
+      'depois',
+    ]);
+    expect(ehGrupo(conversa(mensagens), EU)).toBe(false);
+    expect(ehGrupo(conversa([msg('Ana', '09:00', 'a'), msg('Você', '09:01', 'b')]), EU)).toBe(true);
+  });
+
+  it('a palavra "você" não cita o usuário num grupo', () => {
+    expect(
+      classificar([msg('Ana', '09:00', 'Você vem amanhã?'), msg('Bia', '09:01', 'Você viu?')]),
+    ).toMatchObject({ categoria: 'informativo', motivos: ['W5: grupo sem citação a você'] });
+  });
+
+  it('a linha forjada com o "Você" apaga o bloco (L6 e AW9, limitação conhecida)', () => {
+    expect(classificar([msg('Ana', '09:00', 'Pode me ligar?'), voce('09:01', 'ok')])).toBeNull();
   });
 });
 
