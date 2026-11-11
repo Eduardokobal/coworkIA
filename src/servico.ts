@@ -34,9 +34,9 @@ import {
 import {
   blocoEsperando,
   type ContextoWhatsapp,
-  ehDoUsuario,
   ehGrupo,
   type GruposWhatsapp,
+  mensagemDoUsuario,
   triarConversas,
 } from './regras/triagem-whatsapp.js';
 import {
@@ -160,10 +160,10 @@ export interface ResultadoTriagemWhatsapp {
   avisos: AvisoDaPasta[];
 }
 
-/** AW5: o aviso da conversa com linhas com data impossível, ou nulo sem elas. */
+/** AW5 e AW11: o aviso da conversa com linhas com data impossível, ou nulo sem elas. */
 function avisoDaConversa(conversa: Conversa): string | null {
   return conversa.linhasComDataImpossivel > 0
-    ? avisoDeDataImpossivel(conversa.linhasComDataImpossivel)
+    ? avisoDeDataImpossivel(conversa.linhasComDataImpossivel, conversa.formato)
     : null;
 }
 
@@ -357,7 +357,7 @@ export async function lerConversa(
     conversa,
     mensagens: doPeriodo
       .slice(-limite)
-      .map((mensagem) => ({ ...mensagem, sua: ehDoUsuario(mensagem.autor, whatsapp.eu) })),
+      .map((mensagem) => ({ ...mensagem, sua: mensagemDoUsuario(mensagem, whatsapp.eu) })),
     completo: doPeriodo.length <= limite,
     aviso: avisoDaConversa(conversa),
   };

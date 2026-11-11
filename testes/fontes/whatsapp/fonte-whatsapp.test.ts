@@ -238,6 +238,19 @@ describe('a pasta das conversas (F2 e F4)', () => {
     );
   });
 
+  it('no arquivo do computador, o aviso diz dia/mês, e a primeira linha não conta (AW8 e AW11)', async () => {
+    const pasta = pastaCom({
+      'D.txt':
+        'aviso sem data\n[9/21/26, 9:44:18 AM] Ana: oi\n[21/9/26, 9:45:00 AM] Ana: o mês 21\n',
+    });
+    const { conversas, avisos } = await criarFonteWhatsapp({ pasta, fuso: SP }).conversas();
+    expect(conversas.map((conversa) => conversa.formato)).toEqual(['computador']);
+    expect(avisos).toEqual([{ nome: 'D', texto: avisoDeDataImpossivel(1, 'computador') }]);
+    expect(avisoDeDataImpossivel(1, 'computador')).toBe(
+      'linhas com data impossível: 1; a exportação pode estar no formato dia/mês, e as datas e as mensagens desta conversa podem estar erradas.',
+    );
+  });
+
   it('a demonstração troca o texto antes da leitura', async () => {
     const pasta = pastaCom({ 'Demo.txt': '{{data}} - Ana: oi\n' });
     const fonte = criarFonteWhatsapp({

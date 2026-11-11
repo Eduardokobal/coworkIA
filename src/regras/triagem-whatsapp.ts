@@ -43,11 +43,16 @@ export function ehDoUsuario(autor: string, eu: readonly string[]): boolean {
   return estaNaLista(autor, eu);
 }
 
+/** V1 e AW9: a mensagem é do usuário pela marca do leitor ou pelo autor na lista. */
+export function mensagemDoUsuario(mensagem: MensagemWhatsapp, eu: readonly string[]): boolean {
+  return mensagem.doUsuario === true || ehDoUsuario(mensagem.autor, eu);
+}
+
 /** V3: mais de um autor de mensagem além do usuário. */
 export function ehGrupo(conversa: Conversa, eu: readonly string[]): boolean {
   const outros = new Set(
     conversa.mensagens
-      .filter((mensagem) => !ehDoUsuario(mensagem.autor, eu))
+      .filter((mensagem) => !mensagemDoUsuario(mensagem, eu))
       .map((mensagem) => comparavel(mensagem.autor)),
   );
   return outros.size > 1;
@@ -68,7 +73,7 @@ export function blocoEsperando(
 ): MensagemWhatsapp[] {
   let ultimaDoUsuario = -1;
   for (const [indice, mensagem] of conversa.mensagens.entries()) {
-    if (ehDoUsuario(mensagem.autor, eu)) {
+    if (mensagemDoUsuario(mensagem, eu)) {
       ultimaDoUsuario = indice;
     }
   }

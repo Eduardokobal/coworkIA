@@ -188,6 +188,51 @@ describe('o aviso de data impossível no ler e na triagem (AW5)', () => {
   });
 });
 
+describe('a exportação do computador no ler e na triagem (AW9 e AW11)', () => {
+  /** Uma conversa do computador, de hoje, com o "Você" marcado pelo leitor e 1 linha com data impossível. */
+  function comComputador(): Dependencias {
+    const conversa: Conversa = {
+      id: 'P',
+      nome: 'P',
+      formato: 'computador',
+      mensagens: [
+        { autor: 'Ana', data: '2026-11-04T09:00:00-03:00', texto: 'oi', temTexto: true },
+        {
+          autor: 'Você',
+          data: '2026-11-04T09:05:00-03:00',
+          texto: 'oi',
+          temTexto: true,
+          doUsuario: true,
+        },
+      ],
+      linhasDescartadas: 0,
+      linhasComDataImpossivel: 1,
+    };
+    return dependencias({
+      fonte: { conversas: async () => ({ conversas: [conversa], avisos: [] }) },
+      eu: EU_DA_DEMONSTRACAO,
+      importantes: [],
+    });
+  }
+
+  it('o ler_conversa mostra o "Você" como do usuário e o aviso com dia/mês', async () => {
+    const lida = await lerConversa(comComputador(), { id: 'P' });
+    expect(lida.mensagens.map((mensagem) => [mensagem.autor, mensagem.sua])).toEqual([
+      ['Ana', false],
+      ['Você', true],
+    ]);
+    expect(lida.aviso).toBe(avisoDeDataImpossivel(1, 'computador'));
+  });
+
+  it('a triagem traz o aviso com dia/mês, e a conversa respondida pelo "Você" fica fora', async () => {
+    const resultado = await triagemWhatsapp(comComputador());
+    expect(resultado.avisos).toEqual([
+      { nome: 'P', texto: avisoDeDataImpossivel(1, 'computador') },
+    ]);
+    expect(Object.values(resultado.grupos).flat()).toEqual([]);
+  });
+});
+
 describe('o WhatsApp sem configuração (F1 e V2)', () => {
   it('as mensagens dizem o que definir e com o quê', () => {
     expect(SEM_PASTA_DO_WHATSAPP).toBe(
