@@ -108,20 +108,21 @@ Nesse modo, as ferramentas de e-mail e agenda respondem que não estão ligadas,
 
 O coworkIA lê as conversas que você exporta pelo próprio WhatsApp. Ele não usa nenhuma biblioteca não oficial e não se conecta ao WhatsApp: só lê os arquivos, sem alterar nem enviar nada.
 
-1. Exporte cada conversa sem mídia. No Android, abra a conversa, toque em "Mais" e depois em "Exportar conversa", e escolha "Sem mídia". No iPhone, exporte sem mídia, tire o `_chat.txt` de dentro do `.zip` e renomeie o arquivo com o nome da conversa.
+1. Exporte cada conversa sem mídia. No Android, abra a conversa, toque em "Mais" e depois em "Exportar conversa", e escolha "Sem mídia". No iPhone, exporte sem mídia, tire o `_chat.txt` de dentro do `.zip` e renomeie o arquivo com o nome da conversa. No WhatsApp do computador, a conversa exportada vem num `.zip` com um `chat.txt` e um `chat.md`: tire o `chat.txt` e renomeie o arquivo com o nome da conversa.
 2. Ponha os `.txt` numa pasta e defina `COWORKIA_WHATSAPP_PASTA` com o caminho dela.
-3. Defina `COWORKIA_WHATSAPP_EU` com o nome que aparece nas suas mensagens exportadas e, se quiser, os apelidos com que citam você nos grupos, separados por vírgula.
+3. Defina `COWORKIA_WHATSAPP_EU` com o nome que aparece nas suas mensagens exportadas e, se quiser, os apelidos com que citam você nos grupos, separados por vírgula. Na exportação do WhatsApp do computador, as suas mensagens aparecem como "Você", e o coworkIA as reconhece sem a variável, que continua necessária para as citações nos grupos e para as exportações do celular.
 4. Se quiser, defina `COWORKIA_WHATSAPP_IMPORTANTES` com os contatos importantes.
 
 A triagem olha, em cada conversa, o que chegou depois da sua última resposta, nas últimas 24 horas. Num grupo, só conta o que cita você. As limitações conhecidas:
 
 - uma mensagem de várias linhas pode ter, no meio, uma linha que imita o começo de outra mensagem. O coworkIA não consegue distinguir as duas, porque no arquivo exportado elas são iguais. Se a linha imitar uma mensagem sua, o texto dali em diante aparece como seu, e as mensagens de antes somem da triagem. As ferramentas do WhatsApp avisam a IA disso, na descrição que ela lê;
-- a hora com AM ou PM, os idiomas além do português e a mídia não são lidos;
+- a hora com AM ou PM só é lida na exportação do WhatsApp do computador, e os idiomas além do português e a mídia não são lidos;
+- na exportação do WhatsApp do computador, um contato salvo com o nome "Você" conta como você, uma mensagem só com um texto entre < e > conta como mídia, e a linha que imita uma mensagem sua, no meio de uma mensagem de várias linhas, não precisa do seu nome: basta o "Você";
 - num celular configurado no formato mês/dia, como o dos Estados Unidos, com o relógio de 24 horas, as datas saem trocadas, e algumas mensagens se juntam à anterior. As ferramentas do WhatsApp e o resumo do dia avisam quando acham uma data que não existe, como o mês 13. Um arquivo em que todos os dias vão até 12 não dá para distinguir e sai sem aviso;
 - a citação pelo número de telefone não é reconhecida, e um aviso do WhatsApp com ": " no meio pode virar uma mensagem;
 - um grupo em que só uma outra pessoa falou conta como conversa individual, e um contato que muda de nome no meio da conversa faz ela contar como grupo.
 
-O formato da exportação não é publicado pelo WhatsApp. O coworkIA foi feito a partir das variações conhecidas e medido com exportações de exemplo publicadas por projetos abertos, mas ainda não com uma exportação real.
+O formato da exportação não é publicado pelo WhatsApp. O coworkIA foi feito a partir das variações conhecidas e medido com exportações de exemplo publicadas por projetos abertos e com uma exportação real do WhatsApp do computador. As exportações do celular ainda não foram medidas com uma exportação real.
 
 ### Ler os extratos do banco
 
