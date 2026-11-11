@@ -1,0 +1,47 @@
+# Os testes automáticos do coworkIA, descritos em docs/specs/2026-11-11-ci.md.
+name: CI
+
+# CI2: só os PRs para a main e os pushes na main. O pull_request_target nunca é usado.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# CI4: o token do workflow só lê o repositório.
+permissions:
+  contents: read
+
+# CI5: num PR, um push novo cancela a execução anterior; na main, cada push tem um grupo só dele.
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  # CI6: o nome do job é o da checagem que a regra da main exige.
+  verificar:
+    name: verificar
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # CI7 e CI8: as actions do GitHub, presas pelo hash do commit da versão.
+      - name: Baixar o código
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Instalar o Node 24
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Instalar as dependências, sem os scripts de instalação
+        run: npm ci --ignore-scripts
+      - name: Lint
+        run: npm run lint
+      - name: Tipos
+        run: npm run tipos
+      - name: Build
+        run: npm run build
+      - name: Testes
+        run: npm test
+      - name: Testes das travas
+        run: sh testes-travas/rodar.sh

@@ -1,5 +1,7 @@
 # coworkIA
 
+[![CI](https://github.com/Eduardokobal/coworkIA/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Eduardokobal/coworkIA/actions/workflows/ci.yml)
+
 Um projeto pessoal. Um servidor MCP que roda no seu PC e dá à sua IA (Claude, Codex, VS Code) ferramentas para ler e fazer a triagem dos e-mails e das conversas exportadas do WhatsApp, ler e resumir os extratos do banco em OFX, consultar a agenda, criticar um rascunho e montar o resumo do dia. A versão 1 está descrita em [docs/specs/2026-11-04-versao-1.md](docs/specs/2026-11-04-versao-1.md), com os adendos dos planos [B](docs/specs/2026-11-05-versao-1-adendo.md) e [C](docs/specs/2026-11-05-versao-1-adendo-c.md) e o do [ajuste dos anotados](docs/specs/2026-11-06-versao-1-adendo-anotados.md). A versão 2 começa pelo WhatsApp exportado, descrito em [docs/specs/2026-11-06-versao-2-whatsapp.md](docs/specs/2026-11-06-versao-2-whatsapp.md), e segue com as finanças por extrato, descritas em [docs/specs/2026-11-09-versao-2-financas.md](docs/specs/2026-11-09-versao-2-financas.md). Ela roda no modo de demonstração, com uma caixa de e-mail e uma agenda inventadas, ou com o seu Gmail e a sua Agenda do Google, só para leitura.
 
 ## Como usar
