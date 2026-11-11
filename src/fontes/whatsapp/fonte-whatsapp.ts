@@ -23,9 +23,16 @@ export class ErroDaPasta extends Error {
   }
 }
 
-/** AW5: o aviso fixo das linhas com data impossível (AW4). */
-export function avisoDeDataImpossivel(quantas: number): string {
-  return `linhas com data impossível: ${quantas}; a exportação pode estar no formato mês/dia, e as datas e as mensagens desta conversa podem estar erradas.`;
+/**
+ * AW5: o aviso fixo das linhas com data impossível (AW4). AW11: no formato do computador, que lê a
+ * data como mês/dia, o aviso diz dia/mês.
+ */
+export function avisoDeDataImpossivel(
+  quantas: number,
+  formato: Conversa['formato'] = null,
+): string {
+  const outro = formato === 'computador' ? 'dia/mês' : 'mês/dia';
+  return `linhas com data impossível: ${quantas}; a exportação pode estar no formato ${outro}, e as datas e as mensagens desta conversa podem estar erradas.`;
 }
 
 /** Um aviso sobre a pasta. O nome, quando há, é de terceiros e passa pela S2 na saída. */
@@ -133,7 +140,10 @@ function lerPasta(opcoes: OpcoesDaFonte): ResultadoDaPasta {
       });
     }
     if (leitura.linhasComDataImpossivel > 0) {
-      avisos.push({ nome, texto: avisoDeDataImpossivel(leitura.linhasComDataImpossivel) });
+      avisos.push({
+        nome,
+        texto: avisoDeDataImpossivel(leitura.linhasComDataImpossivel, leitura.formato),
+      });
     }
     lidas.push({ id: idDoArquivo(arquivo), nome, ...leitura });
   }

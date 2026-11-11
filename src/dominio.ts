@@ -53,8 +53,13 @@ export interface MensagemWhatsapp {
   /** ISO 8601 com o deslocamento do fuso (RW4 e H6). */
   data: string;
   texto: string;
-  /** L5: falso para a mídia oculta e para o texto que começa com U+200E. */
+  /**
+   * L5: falso para a mídia oculta e para o texto que começa com U+200E. AW10: no formato do
+   * computador, também para a mensagem inteira entre < e > e para a "Mensagem apagada".
+   */
   temTexto: boolean;
+  /** AW9: só na mensagem do "Você" de uma exportação do computador, que é do usuário. */
+  doUsuario?: true;
 }
 
 /** Versão 2, seção 4: uma conversa, lida de um arquivo da pasta. */
@@ -62,8 +67,8 @@ export interface Conversa {
   /** F4: os 12 primeiros caracteres hexadecimais do sha256 do nome do arquivo. */
   id: string;
   nome: string;
-  /** L1: o formato da primeira linha que casou; nulo quando nenhuma casou (L4). */
-  formato: 'android' | 'iphone' | null;
+  /** L1 e AW8: o formato da primeira linha que casou; nulo quando nenhuma casou (L4). */
+  formato: 'android' | 'iphone' | 'computador' | null;
   mensagens: MensagemWhatsapp[];
   /** L3: as linhas que não continuam nenhuma mensagem. */
   linhasDescartadas: number;
