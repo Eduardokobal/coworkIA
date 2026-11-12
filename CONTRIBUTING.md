@@ -26,7 +26,7 @@ Os passos marcados com **portão** só seguem depois do parecer do auditor e do 
 
 Um assunto só de documentação, sem código, não tem plano nem fases: o próprio documento é a spec.
 
-O ensaio do plano numa cópia à parte ficou de fora no começo, por decisão do Eduardo em 2026-11-04. Ele pode voltar quando houver regra de negócio pesada.
+O ensaio do plano numa cópia à parte ficou de fora no começo, por decisão do Eduardo em 2026-11-04, e voltou com o plano B da versão 1, em 2026-11-05. Desde então, antes de mandar o plano ao auditor, o DEV o aplica do zero num clone. Desde o plano C, o resultado vem numa seção "Ensaio" do plano.
 
 ## 3. Branches
 
@@ -49,7 +49,7 @@ O ensaio do plano numa cópia à parte ficou de fora no começo, por decisão do
 - a main só muda por PR, e só com merge commit;
 - ninguém dá force push na main nem a apaga;
 - o PR pede zero aprovações de revisor no GitHub, porque o Eduardo é a única pessoa com acesso. A conferência é a do auditor;
-- não há checagem obrigatória, porque o projeto não tem CI.
+- desde 2026-11-11, o merge exige a checagem `verificar` verde no PR, e só conta a que vem do GitHub Actions. Ela é o job do workflow de CI (`.github/workflows/ci.yml`), que roda o lint, os tipos, o build, os testes e os testes das travas em cada PR para a main e em cada push na main.
 
 Uma correção de emergência também passa por branch e PR. Mudar o ruleset é um assunto próprio, com o OK do Eduardo.
 
@@ -98,6 +98,7 @@ As regras de todo commit:
 - O título segue o formato de commit da seção 4.
 - O corpo traz o porquê, os números (testes, lint, tipos e build), os achados que o auditor mandou anotar, os riscos aceitos e o que o Eduardo deve conferir.
 - O merge é do Eduardo, sempre com **merge commit**: a main guarda cada commit com o mesmo hash que o auditor conferiu. O repositório no GitHub só oferece esse tipo de merge.
+- O merge só fica disponível com a checagem `verificar` verde no PR (seção 3). Se ela falhar, o DEV não pede o merge e avisa o Eduardo e o auditor, com o log da execução.
 - O título do merge vem do título do PR, e a descrição vem em branco (configuração do repositório desde 2026-11-04). Nenhum campo precisa ser trocado. O auditor confere a mensagem que entrou.
 - Depois do merge, o GitHub apaga sozinho a branch do PR (configuração do repositório desde 2026-11-06). O commit e o PR continuam no GitHub, e a branch local continua na máquina.
 
@@ -121,6 +122,7 @@ Antes do primeiro push, o `git remote -v` precisa mostrar `github.com/Eduardokob
 - Os arquivos `.env*` ficam fora do git. O `.env.example` vai com os nomes das variáveis e sem os valores.
 - Chave nunca é impressa. Para saber se ela existe, confira o nome e o tamanho, nunca o valor.
 - O teste de integração nunca roda contra a produção.
+- No GitHub Actions, desde 2026-11-11, de fora do repositório e da conta Eduardokobal só passam as actions criadas pelo GitHub (as das organizações `actions` e `github`), e toda action precisa vir presa pelo hash completo do commit da versão. O workflow de hoje usa só duas actions, as duas do GitHub. O token do workflow só lê o repositório, e o checkout não guarda as credenciais.
 - No GitHub, ficam ligados a varredura de segredos, o bloqueio de envio com segredo e os alertas do Dependabot, que só avisam. As atualizações automáticas do Dependabot ficam desligadas, porque abrem PRs de um robô, fora do ciclo da seção 2. Um alerta é decisão do Eduardo.
 - Um teste nunca escreve por extenso um valor no formato de uma chave, mesmo falsa: a P4 das travas recusa o commit, e o bloqueio de envio do GitHub pode recusar o push. Quando um teste precisa de uma chave, ele a monta na hora, como fazem os testes das travas.
 
