@@ -47,12 +47,19 @@ const EXPRESSOES_DE_PRAZO: ReadonlyArray<{ termo: string; diasDepoisDoEmail: num
   { termo: 'até o final do dia', diasDepoisDoEmail: 0 },
 ];
 
-/** "até", com "o dia" ou "dia" opcionais, logo antes da data (texto já normalizado). */
-const ATE_ANTES_DA_DATA = /(?:^|[^\p{L}\p{N}])ate(?:\s+o)?(?:\s+dia)?\s*$/u;
+/** Adendo AD20: os espaços são os do \s do JavaScript, como na expressão de antes. */
+const ESPACO = /^\s$/u;
+const LETRA_OU_DIGITO = /^[\p{L}\p{N}]$/u;
 
 export interface Prazo {
   data: DateTime;
   descricao: string;
+}
+
+/** O primeiro prazo que vence de hoje a hoje + 2 (H5), com os dias até ele. */
+export interface PrazoProximo {
+  prazo: Prazo;
+  dias: number;
 }
 
 /** 7.3, passo 1: o corpo sem a citação, em texto puro. */
@@ -66,25 +73,98 @@ export function textoAnalisavel(email: Email): string {
   return '';
 }
 
-export function prazosNoTexto(texto: string, dataDoEmail: DateTime): Prazo[] {
+/** AD20: o caractere inteiro que termina antes de `fim`, com o par de surrogates junto. */
+function caractereAntes(texto: string, fim: number): string {
+  const ultimo = texto.charCodeAt(fim - 1);
+  const penultimo = texto.charCodeAt(fim - 2);
+  const parDeSurrogates =
+    ultimo >= 0xdc00 && ultimo <= 0xdfff && penultimo >= 0xd800 && penultimo <= 0xdbff;
+  return texto.slice(parDeSurrogates ? fim - 2 : fim - 1, fim);
+}
+
+/** AD20: a posição antes dos espaços que terminam em `fim`. */
+function antesDosEspacos(texto: string, fim: number): number {
+  let posicao = fim;
+  while (posicao > 0 && ESPACO.test(caractereAntes(texto, posicao))) {
+    posicao -= 1;
+  }
+  return posicao;
+}
+
+/** AD20: a palavra termina em `fim`, com pelo menos um espaço antes; devolve onde ele começa. */
+function antesDaPalavra(texto: string, fim: number, palavra: string): number | null {
+  const inicio = fim - palavra.length;
+  if (inicio < 0 || texto.slice(inicio, fim) !== palavra) {
+    return null;
+  }
+  const comEspacos = antesDosEspacos(texto, inicio);
+  return comEspacos < inicio ? comEspacos : null;
+}
+
+/** AD20: o "ate", o "o" e o "dia" opcionais e os espaços até a data, de trás para a frente. */
+function ateAntesDaData(normalizado: string, indice: number): boolean {
+  const semEspacos = antesDosEspacos(normalizado, indice);
+  const semDia = antesDaPalavra(normalizado, semEspacos, 'dia') ?? semEspacos;
+  const semO = antesDaPalavra(normalizado, semDia, 'o') ?? semDia;
+  const inicio = semO - 'ate'.length;
+  if (inicio < 0 || normalizado.slice(inicio, semO) !== 'ate') {
+    return false;
+  }
+  return inicio === 0 || !LETRA_OU_DIGITO.test(caractereAntes(normalizado, inicio));
+}
+
+/** AD21: as datas de hoje - 3 a hoje + 5, no calendário de agora, sem o ano e com ele. */
+function datasPerto(agora: DateTime): Set<string> {
+  const perto = new Set<string>();
+  const hoje = agora.startOf('day');
+  for (let deslocamento = -3; deslocamento <= 5; deslocamento += 1) {
+    const dia = hoje.plus({ days: deslocamento });
+    perto.add(`${dia.day}/${dia.month}`);
+    perto.add(`${dia.day}/${dia.month}/${dia.year}`);
+  }
+  return perto;
+}
+
+/** H5: os dias até o prazo, quando ele vence de hoje a hoje + 2; senão, nulo. */
+function venceLogo(data: DateTime, agora: DateTime): number | null {
+  const dias = diasDeCalendario(agora, data);
+  return dias >= 0 && dias <= 2 ? dias : null;
+}
+
+/**
+ * 7.3 e adendo AD19 a AD21: o primeiro prazo do texto que vence de hoje a hoje + 2. Vêm primeiro as
+ * datas numéricas com o "até", na ordem do texto, e depois as expressões fixas. A referência é a
+ * data do e-mail ou da mensagem (DT2).
+ */
+export function primeiroPrazoProximo(
+  texto: string,
+  referencia: DateTime,
+  agora: DateTime,
+): PrazoProximo | null {
   const normalizado = normalizar(texto);
-  const prazos: Prazo[] = [];
+  const perto = datasPerto(agora);
+  const vistas = new Set<string>();
   for (const achada of datasNumericas(normalizado)) {
-    if (!ATE_ANTES_DA_DATA.test(normalizado.slice(0, achada.indice))) {
+    const semAno = `${achada.dia}/${achada.mes}`;
+    const chave = achada.ano === null ? semAno : `${semAno}/${achada.ano}`;
+    if (!perto.has(chave) || vistas.has(chave) || !ateAntesDaData(normalizado, achada.indice)) {
       continue;
     }
-    const data = resolverData(achada, dataDoEmail);
-    if (data !== null) {
-      prazos.push({ data, descricao: `até ${data.toFormat('dd/MM/yyyy')}` });
+    vistas.add(chave);
+    const data = resolverData(achada, referencia);
+    const dias = data === null ? null : venceLogo(data, agora);
+    if (data !== null && dias !== null) {
+      return { prazo: { data, descricao: `até ${data.toFormat('dd/MM/yyyy')}` }, dias };
     }
   }
   for (const { termo, diasDepoisDoEmail } of EXPRESSOES_DE_PRAZO) {
-    if (contemTermo(normalizado, termo)) {
-      const data = dataDoEmail.startOf('day').plus({ days: diasDepoisDoEmail });
-      prazos.push({ data, descricao: `"${termo}" (${data.toFormat('dd/MM/yyyy')})` });
+    const data = referencia.startOf('day').plus({ days: diasDepoisDoEmail });
+    const dias = venceLogo(data, agora);
+    if (dias !== null && contemTermo(normalizado, termo)) {
+      return { prazo: { data, descricao: `"${termo}" (${data.toFormat('dd/MM/yyyy')})` }, dias };
     }
   }
-  return prazos;
+  return null;
 }
 
 export function quandoVence(dias: number): string {
@@ -111,14 +191,14 @@ function regraT2(email: Email): string | null {
 }
 
 function regraT3(texto: string, email: Email, contexto: ContextoTriagem): string | null {
-  const dataDoEmail = lerDataHora(email.data, contexto.fuso);
-  for (const prazo of prazosNoTexto(texto, dataDoEmail)) {
-    const dias = diasDeCalendario(contexto.agora, prazo.data);
-    if (dias >= 0 && dias <= 2) {
-      return `T3: prazo ${prazo.descricao}, que ${quandoVence(dias)}`;
-    }
-  }
-  return null;
+  const proximo = primeiroPrazoProximo(
+    texto,
+    lerDataHora(email.data, contexto.fuso),
+    contexto.agora,
+  );
+  return proximo === null
+    ? null
+    : `T3: prazo ${proximo.prazo.descricao}, que ${quandoVence(proximo.dias)}`;
 }
 
 function regraT5(texto: string, email: Email, contexto: ContextoTriagem): string | null {
