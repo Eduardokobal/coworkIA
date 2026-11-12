@@ -9,6 +9,7 @@ import type {
   ConversaLida,
   ListaDeConversas,
   ListaDeLancamentos,
+  ResultadoClassificacao,
   ResultadoTriagem,
   ResultadoTriagemWhatsapp,
   ResumoDoDia,
@@ -56,7 +57,7 @@ function pessoa(dados: Pessoa, origem: Origem, id: string, saida: Saida) {
   };
 }
 
-function contar(resultado: ResultadoTriagem): Record<Categoria, number> {
+function contar(resultado: Pick<ResultadoTriagem, 'grupos'>): Record<Categoria, number> {
   return {
     urgente: resultado.grupos.urgente.length,
     pede_resposta: resultado.grupos.pede_resposta.length,
@@ -115,6 +116,23 @@ export function triagemParaSaida(resultado: ResultadoTriagem, fuso: string, said
       pede_resposta: lista(resultado.grupos.pede_resposta),
       informativo: lista(resultado.grupos.informativo),
       propaganda: lista(resultado.grupos.propaganda),
+    },
+  };
+}
+
+/** CE6: só o id e os motivos de cada e-mail, na ordem da entrada; nenhum texto dos e-mails volta. */
+export function classificacaoParaSaida(resultado: ResultadoClassificacao) {
+  const { grupos, analisados } = resultado;
+  const soIdEMotivos = (lista: EmailClassificado[]) =>
+    lista.map(({ email, classificacao }) => ({ id: email.id, motivos: classificacao.motivos }));
+  return {
+    contagem: contar(resultado),
+    analisados,
+    grupos: {
+      urgente: soIdEMotivos(grupos.urgente),
+      pede_resposta: soIdEMotivos(grupos.pede_resposta),
+      informativo: soIdEMotivos(grupos.informativo),
+      propaganda: soIdEMotivos(grupos.propaganda),
     },
   };
 }
