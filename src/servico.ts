@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import type { Conversa, Evento, MensagemWhatsapp } from './dominio.js';
+import type { Conversa, Email, Evento, MensagemWhatsapp, Pessoa } from './dominio.js';
 import { EmailEAgendaDesligados } from './fontes/desligadas.js';
 import type { AvisoDoExtrato, FonteFinancas } from './fontes/financas/fonte-financas.js';
 import type { Fontes } from './fontes/tipos.js';
@@ -211,6 +211,92 @@ export async function triagem(dep: Dependencias, desde?: string): Promise<Result
     grupos: agrupar(pagina.emails, await contexto(dep)),
     analisados: pagina.emails.length,
     completo: pagina.completo,
+  };
+}
+
+/** CE2: o remetente ou um destinatário, como a IA manda. */
+export interface PessoaDaIa {
+  endereco: string;
+  nome?: string | undefined;
+}
+
+/** CE2: um e-mail que a IA leu por outro conector, só com os campos da triagem. */
+export interface EmailDaIa {
+  id: string;
+  de: PessoaDaIa;
+  para: PessoaDaIa[];
+  cc?: PessoaDaIa[] | undefined;
+  assunto: string;
+  data: string;
+  corpo: string;
+  cabecalhos?:
+    | { list_unsubscribe?: string | undefined; precedence?: string | undefined }
+    | undefined;
+}
+
+export interface EntradaClassificarEmails {
+  seuEndereco: string;
+  emails: EmailDaIa[];
+}
+
+export interface ResultadoClassificacao {
+  grupos: Grupos;
+  analisados: number;
+}
+
+function pessoaDaIa(pessoa: PessoaDaIa): Pessoa {
+  return { nome: pessoa.nome ?? '', endereco: pessoa.endereco };
+}
+
+/** CE4: só entra o cabeçalho com texto; o vazio ou só com espaços conta como ausente (achado 143). */
+function cabecalhosDaIa(cabecalhos: EmailDaIa['cabecalhos']): Record<string, string> {
+  const lidos: Record<string, string> = {};
+  const listUnsubscribe = cabecalhos?.list_unsubscribe ?? '';
+  if (listUnsubscribe.trim() !== '') {
+    lidos['list-unsubscribe'] = listUnsubscribe;
+  }
+  const precedence = cabecalhos?.precedence ?? '';
+  if (precedence.trim() !== '') {
+    lidos.precedence = precedence;
+  }
+  return lidos;
+}
+
+/** CE4: o e-mail da IA vira o e-mail do domínio, com o corpo em texto e sem HTML. */
+export function emailDaIa(entrada: EmailDaIa): Email {
+  return {
+    id: entrada.id,
+    de: pessoaDaIa(entrada.de),
+    para: entrada.para.map(pessoaDaIa),
+    cc: (entrada.cc ?? []).map(pessoaDaIa),
+    assunto: entrada.assunto,
+    data: entrada.data,
+    corpoTexto: entrada.corpo,
+    corpoHtml: null,
+    cabecalhos: cabecalhosDaIa(entrada.cabecalhos),
+    lido: false,
+    temAnexo: false,
+  };
+}
+
+/**
+ * CE4 e CE5: a triagem dos e-mails que a IA trouxe, com as regras T1 a T6, sem ler nenhuma fonte. O
+ * endereço do usuário é o da chamada; os importantes, o relógio e o fuso são os do servidor.
+ */
+export function classificarEmails(
+  dep: Dependencias,
+  entrada: EntradaClassificarEmails,
+): ResultadoClassificacao {
+  const { relogio, fuso, importantes } = dep;
+  const contextoDaIa: ContextoTriagem = {
+    agora: relogio(),
+    fuso,
+    enderecoUsuario: entrada.seuEndereco,
+    importantes,
+  };
+  return {
+    grupos: agrupar(entrada.emails.map(emailDaIa), contextoDaIa),
+    analisados: entrada.emails.length,
   };
 }
 
