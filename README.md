@@ -61,7 +61,7 @@ O servidor fala MCP pela entrada e pela saída padrão. Troque `/caminho/para/co
 
   O VS Code ainda aceita o `.vscode/mcp.json`, mas a documentação dele, de 04/11/2026, o marca como antigo ("deprecated") no assistente que adiciona servidores. O outro destino da documentação, o `.mcp.json` na raiz do projeto, usa o formato portátil do Copilot, com a chave `mcpServers`, e o assistente só o oferece com a opção experimental `chat.mcp.workspaceRootConfig.enabled` ligada.
 
-As ferramentas são `listar_emails`, `ler_email`, `triagem_emails`, `listar_eventos`, `verificar_disponibilidade`, `criticar_rascunho`, `resumo_do_dia`, `listar_conversas`, `ler_conversa`, `triagem_whatsapp`, `listar_lancamentos` e `resumo_financeiro`, e o prompt é `criticar_rascunho`.
+As ferramentas são `listar_emails`, `ler_email`, `triagem_emails`, `classificar_emails`, `listar_eventos`, `verificar_disponibilidade`, `criticar_rascunho`, `resumo_do_dia`, `listar_conversas`, `ler_conversa`, `triagem_whatsapp`, `listar_lancamentos` e `resumo_financeiro`, e o prompt é `criticar_rascunho`.
 
 ### Variáveis de ambiente
 
@@ -107,6 +107,18 @@ Se você não quer conectar o Google, o modo `arquivos` lê só as conversas exp
 2. As duas seções abaixo dizem como exportar as conversas e baixar os extratos.
 
 Nesse modo, as ferramentas de e-mail e agenda respondem que não estão ligadas, e o resumo do dia traz o mesmo aviso no lugar do e-mail e da agenda, com o WhatsApp.
+
+### Triar os e-mails pela sua IA
+
+Se a sua IA já lê o seu e-mail por um conector próprio, como os conectores de Gmail que algumas IAs oferecem, ela pode passar os e-mails ao coworkIA para a triagem, sem o login do Google no coworkIA. A ferramenta `classificar_emails` recebe os e-mails e o seu endereço e devolve, para cada e-mail, a categoria (urgente, pede resposta, informativo ou propaganda) e os motivos, com as mesmas regras da triagem. Ela funciona em todos os modos e não lê, nem guarda, nada sozinha.
+
+Se esse conector também envia e-mail, deixe ligada a aprovação de cada chamada de ferramenta, como diz a seção Avisos.
+
+Peça, por exemplo: "Busque os meus e-mails das últimas 24 horas pelo conector de e-mail e classifique com o classificar_emails do coworkIA."
+
+Cada chamada aceita até 200 e-mails, com o corpo em texto de até 50.000 caracteres. A resposta traz só o identificador e os motivos de cada e-mail, sem repetir o texto. A regra do remetente importante (T4) usa a `COWORKIA_IMPORTANTES`, como na triagem.
+
+Se o conector não der os cabeçalhos de lista (`List-Unsubscribe` e `Precedence`), a propaganda não é reconhecida e pode sair em qualquer outra categoria, até como urgente. Um corpo em HTML ou com as mensagens citadas também pode mudar a classificação.
 
 ### Ler as conversas do WhatsApp
 
