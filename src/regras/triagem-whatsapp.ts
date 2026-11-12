@@ -1,8 +1,8 @@
 import type { DateTime } from 'luxon';
 import type { Conversa, MensagemWhatsapp } from '../dominio.js';
-import { diasDeCalendario, lerDataHora } from '../tempo.js';
+import { lerDataHora } from '../tempo.js';
 import { contemTermo, normalizar, primeiroTermo, semAcentos } from '../texto/normalizar.js';
-import { PEDIDOS, prazosNoTexto, quandoVence, TERMOS_URGENCIA } from './triagem.js';
+import { PEDIDOS, primeiroPrazoProximo, quandoVence, TERMOS_URGENCIA } from './triagem.js';
 
 export type CategoriaWhatsapp = 'urgente' | 'pede_resposta' | 'informativo';
 
@@ -98,11 +98,9 @@ function regraW2(
 ): string | null {
   for (const mensagem of consideradas) {
     const dataDaMensagem = lerDataHora(mensagem.data, contexto.fuso);
-    for (const prazo of prazosNoTexto(mensagem.texto, dataDaMensagem)) {
-      const dias = diasDeCalendario(contexto.agora, prazo.data);
-      if (dias >= 0 && dias <= 2) {
-        return `W2: prazo ${prazo.descricao}, que ${quandoVence(dias)}`;
-      }
+    const proximo = primeiroPrazoProximo(mensagem.texto, dataDaMensagem, contexto.agora);
+    if (proximo !== null) {
+      return `W2: prazo ${proximo.prazo.descricao}, que ${quandoVence(proximo.dias)}`;
     }
   }
   return null;
