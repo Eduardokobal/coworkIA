@@ -126,7 +126,7 @@ function saidaNova(): Saida {
 
 /** Seção 8: só registra as ferramentas e o prompt; a lógica fica no serviço. */
 export function criarServidor(dep: Dependencias): McpServer {
-  const servidor = new McpServer({ name: 'coworkia', version: '0.1.0' });
+  const servidor = new McpServer({ name: 'coworkia', version: '1.0.0' });
 
   servidor.registerTool(
     'listar_emails',
